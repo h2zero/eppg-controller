@@ -15,6 +15,7 @@
 #include <StaticThreadController.h>
 #include <Thread.h>   // run tasks at different intervals
 #include <Wire.h>
+#include <eppgBLE.h>
 
 using namespace ace_button;
 
@@ -52,6 +53,12 @@ uint32_t cruisedAtMilis = 0;
 unsigned int armedSecs = 0;
 unsigned int last_throttle = 0;
 
+#ifdef EPPG_BLE_SERVER
+EppgBLEServer ble;
+#elif defined(EPPG_BLE_CLIENT)
+EppgBLEClient ble;
+#endif
+
 #pragma message "Warning: OpenPPG software is in beta"
 
 // the setup function runs once when you press reset or power the board
@@ -63,6 +70,7 @@ void setup() {
   usb_web.setLineStateCallback(line_state_callback);
 #endif
   Serial.begin(115200);
+#if 0
   Serial1.begin(115200);
   Serial1.setTimeout(5);
 
@@ -99,15 +107,37 @@ void setup() {
   // TODO: Replace extEEPROM with preferences
   //uint8_t eepStatus = eep.begin(eep.twiClock100kHz);
   refreshDeviceData();
+#endif
+
+#if defined (EPPG_BLE_SERVER) || defined (EPPG_BLE_CLIENT)
+  ble.setConnectCallback(bleConnected);
+  ble.setDisconnectCallback(bleDisconnected);
+#ifdef EPPG_BLE_SERVER
+  ble.setThrottleCallback(bleThrottleUpdate);
+  ble.setArmCallback(bleArm);
+  ble.setDisarmCallback(bleDisarm);
+#endif
+  ble.begin();
+#endif
 }
 
 // main loop - everything runs in threads
 void loop() {
-  Watchdog.reset();
   // from WebUSB to both Serial & webUSB
   //if (usb_web.available()) parse_usb_serial();
-  threads.run();
+  //threads.run();
+  delay(100);
 }
+
+#if defined (EPPG_BLE_SERVER) || defined (EPPG_BLE_CLIENT)
+void bleConnected(){Serial.println("Client Connected");}
+void bleDisconnected(){Serial.println("Client Disconnected");}
+#if defined (EPPG_BLE_SERVER)
+void bleThrottleUpdate(int val){Serial.printf("Updated Throttle: %d\n", val);}
+void bleArm(){}
+void bleDisarm(){}
+#endif
+#endif
 
 void checkButtons() {
   button_side.check();
