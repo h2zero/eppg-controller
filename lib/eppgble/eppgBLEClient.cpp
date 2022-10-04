@@ -2,6 +2,9 @@
 #include <NimBLEDevice.h>
 #include "eppgBLE.h"
 
+#include <functional>
+using namespace std::placeholders;
+
 const char *SERVICE_UUID = "8877FB19-E00B-40BE-905E-ACB42C39E6B8";
 const char *TH_CHAR_UUID = "5A57F691-C0B9-45DD-BDF1-279681212C29";
 const char *STATUS_CHAR_UUID = "28913A56-5701-4B27-85DB-50985F224847";
@@ -113,11 +116,46 @@ bool EppgBLEClient::setThrottle(int val) {
     return false;
   }
 
-  return pClient->setValue(NimBLEUUID(SERVICE_UUID), NimBLEUUID(TH_CHAR_UUID), val, true);
+  NimBLEAttValue v((uint8_t*)&val, sizeof(val));
+  // Use write with response to verify.
+  return pClient->setValue(NimBLEUUID(SERVICE_UUID), NimBLEUUID(TH_CHAR_UUID), v, true);
 }
 
 bool EppgBLEClient::isConnected() {
   return pClient->isConnected();
+}
+
+void EppgBLEClient::statusNotify(NimBLERemoteCharacteristic *pChar,
+                                 uint8_t *pData, size_t length, bool isNotify) {
+  if (length != sizeof(uint32_t)) {
+    Serial.println("Invalid status data");
+    return;
+  }
+
+  if (this->statusCB) {
+    uint32_t val = *(uint32_t*)pData;
+    this->statusCB(val);
+  }
+}
+
+void EppgBLEClient::batteryNotify(NimBLERemoteCharacteristic *pChar,
+                                  uint8_t *pData, size_t length, bool isNotify) {
+  if (length != sizeof(uint8_t)) {
+    Serial.println("Invalid battery data");
+    return;
+  }
+
+  if (this->batteryCB) {
+    uint8_t val = *pData;
+    this->batteryCB(val);
+  }
+}
+
+bool EppgBLEClient::disconnect() {
+  if (pClient->isConnected()) {
+    return pClient->disconnect() == 0;
+  }
+  return true;
 }
 
 bool EppgBLEClient::connect() {
@@ -145,9 +183,14 @@ bool EppgBLEClient::connect() {
   }
 
   if (!pMainSvc || !pThChr || !pStChr || !pBattSvc || !pBattChr) {
-    if (pClient->isConnected()) {
-      pClient->disconnect();
-    }
+    this->disconnect();
+    this->connecting = false;
+    return false;
+  }
+
+  if (!pStChr->subscribe(true, std::bind(&EppgBLEClient::statusNotify, this, _1, _2, _3, _4)) ||
+      !pBattChr->subscribe(true, std::bind(&EppgBLEClient::batteryNotify, this, _1, _2, _3, _4))) {
+    this->disconnect();
     this->connecting = false;
     return false;
   }
@@ -158,13 +201,12 @@ bool EppgBLEClient::connect() {
 
 void EppgBLEClient::begin() {
   Serial.println("Setting up BLE");
-  bleQueue = xQueueCreate(32, sizeof(unsigned long));
-  xTaskCreate(clientTask, "clientTask", 5000, this, 2, NULL);
-
   NimBLEDevice::init("");
   NimBLEDevice::setPower(ESP_PWR_LVL_P9);
   pClient = NimBLEDevice::createClient();
   pClient->setClientCallbacks(new ClientCallbacks);
   NimBLEScan* pScan = NimBLEDevice::getScan();
   pScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks);
+  bleQueue = xQueueCreate(32, sizeof(unsigned long));
+  xTaskCreate(clientTask, "clientTask", 5000, this, 2, NULL);
 }

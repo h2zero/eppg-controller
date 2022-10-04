@@ -69,6 +69,9 @@ void serverTask(void * parameter) {
         } else {
           Serial.println("Failed to start advertising");
         }
+      } else {
+        pStChar->notify();
+        pBattChr->notify();
       }
     }
   }
@@ -108,6 +111,16 @@ void EppgBLEServer::processEvent(unsigned long event) {
   }
 }
 
+void EppgBLEServer::setStatus(uint32_t val) {
+  pStChar->setValue(val);
+  pStChar->notify();
+}
+
+void EppgBLEServer::setBattery(uint8_t val) {
+  pBattChr->setValue(val);
+  pBattChr->notify();
+}
+
 void EppgBLEServer::begin() {
   Serial.println("Setting up BLE");
   NimBLEDevice::init("OpenPPG Controller");
@@ -117,8 +130,9 @@ void EppgBLEServer::begin() {
   pServer->setCallbacks(new ServerCallbacks);
   NimBLEService *pSvc = pServer->createService(SERVICE_UUID);
   pThChar = pSvc->createCharacteristic(TH_CHAR_UUID,
-                                       NIMBLE_PROPERTY::READ  |
-                                       NIMBLE_PROPERTY::WRITE |
+                                       NIMBLE_PROPERTY::READ     |
+                                       NIMBLE_PROPERTY::WRITE    |
+                                       NIMBLE_PROPERTY::WRITE_NR |
                                        NIMBLE_PROPERTY::NOTIFY);
 
   pThChar->setCallbacks(new CharacteristicCallbacks);
@@ -128,7 +142,8 @@ void EppgBLEServer::begin() {
                                        NIMBLE_PROPERTY::NOTIFY);
 
   NimBLEService *pBattSvc = pServer->createService("180F");
-  pBattChr = pBattSvc->createCharacteristic("2A19", NIMBLE_PROPERTY::READ, 1);
+  pBattChr = pBattSvc->createCharacteristic("2A19", NIMBLE_PROPERTY::READ |
+                                                    NIMBLE_PROPERTY::NOTIFY, 1);
 
   pSvc->start();
   pBattSvc->start();

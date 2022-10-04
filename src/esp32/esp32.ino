@@ -99,6 +99,8 @@ EppgBLEServer ble;
 EppgBLEClient ble;
 #endif
 
+#define BLE_TEST // TODO: remove
+
 #pragma message "Warning: OpenPPG software is in beta"
 
 // the setup function runs once when you press reset or power the board
@@ -122,7 +124,7 @@ void setup() {
 
   //Serial.print(F("Booting up (USB) V"));
   //Serial.print(VERSION_MAJOR + "." + VERSION_MINOR);
-
+#if 0
   pinMode(LED_SW, OUTPUT);   // set up the internal LED2 pin
 
   analogReadResolution(12);     // M0 family chip provides 12bit resolution
@@ -165,6 +167,8 @@ void setup() {
   initDisplay();
   modeSwitch();
 
+#endif // 0
+
 #if defined (EPPG_BLE_SERVER) || defined (EPPG_BLE_CLIENT)
   ble.setConnectCallback(bleConnected);
   ble.setDisconnectCallback(bleDisconnected);
@@ -172,6 +176,9 @@ void setup() {
   ble.setThrottleCallback(bleThrottleUpdate);
   ble.setArmCallback(bleArm);
   ble.setDisarmCallback(bleDisarm);
+#elif EPPG_BLE_CLIENT
+  ble.setStatusCallback(bleStatusUpdate);
+  ble.setBatteryCallback(bleBatteryUpdate);
 #endif
   ble.begin();
 #endif
@@ -184,6 +191,9 @@ void bleDisconnected(){Serial.println("Client Disconnected");}
 void bleThrottleUpdate(int val){Serial.printf("Updated Throttle: %d\n", val);}
 void bleArm(){}
 void bleDisarm(){}
+#elif defined (EPPG_BLE_CLIENT)
+void bleStatusUpdate(uint32_t val){Serial.printf("Status update: %08x\n", val);}
+void bleBatteryUpdate(uint8_t val){Serial.printf("Battery update: %u\n", val);}
 #endif
 #endif
 
@@ -210,7 +220,17 @@ void loop() {
   if (!armed && usb_web.available()) parse_usb_serial();
 #endif
 
+#ifndef ESP_PLATFORM
   threads.run();
+#elif defined(BLE_TEST)
+  #ifdef EPPG_BLE_SERVER
+  ble.setBattery(random(0x00,0x64));
+  ble.setStatus(random(0x00,0xFFFF));
+  #elif EPPG_BLE_CLIENT
+  ble.setThrottle(random(0x00, 0xFFFF));
+  #endif
+  delay(1000);
+#endif
 }
 
 #ifdef RP_PIO
