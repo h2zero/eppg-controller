@@ -4,8 +4,10 @@
 #include "../../lib/crc.c"       // packet error checking
 #ifdef M0_PIO
   #include "../../inc/sp140/m0-config.h"          // device config
-#else
+#elif RP_PIO
   #include "../../inc/sp140/rp2040-config.h"         // device config
+#elif ESP_PLATFORM
+  #include "../../inc/esp32/esp32-config.h"
 #endif
 
 #include "../../inc/sp140/structs.h"         // data structs
@@ -19,8 +21,10 @@
 #include <ResponsiveAnalogRead.h>  // smoothing for throttle
 #include <Servo.h>               // to control ESCs
 #include <SPI.h>
+#ifndef ESP_PLATFORM
 #include <StaticThreadController.h>
 #include <Thread.h>   // run tasks at different intervals
+#endif
 #include <TimeLib.h>  // convert time to hours mins etc
 #include <Wire.h>
 #ifdef USE_TINYUSB
@@ -75,14 +79,20 @@ ButtonConfig* buttonConfig = button_top.getButtonConfig();
 CircularBuffer<float, 50> voltageBuffer;
 CircularBuffer<int, 8> potBuffer;
 
+#ifdef ESP_PLATFORM
+xTimerHandle ledBlinkHandle;
+xTimerHandle checkButtonsHandle;
+#else
 Thread ledBlinkThread = Thread();
 Thread displayThread = Thread();
 Thread throttleThread = Thread();
 Thread buttonThread = Thread();
 Thread telemetryThread = Thread();
 Thread counterThread = Thread();
+
 StaticThreadController<6> threads(&ledBlinkThread, &displayThread, &throttleThread,
                                   &buttonThread, &telemetryThread, &counterThread);
+#endif
 
 bool armed = false;
 bool use_hub_v2 = true;
@@ -99,8 +109,6 @@ EppgBLEServer ble;
 EppgBLEClient ble;
 #endif
 
-#define BLE_TEST // TODO: remove
-
 #pragma message "Warning: OpenPPG software is in beta"
 
 // the setup function runs once when you press reset or power the board
@@ -111,27 +119,27 @@ void setup() {
   SerialESC.setTimeout(ESC_TIMEOUT);
 
 #ifdef USE_TINYUSB
-#  ifdef ESP_PLATFORM
+  #ifdef ESP_PLATFORM
   USB.webUSB(true);
   USB.webUSBURL("https://config.openppg.com");
   USB.begin();
-#  else
+  #else
   usb_web.begin();
   usb_web.setLandingPage(&landingPage);
   usb_web.setLineStateCallback(line_state_callback);
-#  endif
+  #endif
 #endif
 
   //Serial.print(F("Booting up (USB) V"));
   //Serial.print(VERSION_MAJOR + "." + VERSION_MINOR);
-#if 0
+
   pinMode(LED_SW, OUTPUT);   // set up the internal LED2 pin
 
   analogReadResolution(12);     // M0 family chip provides 12bit resolution
   pot.setAnalogResolution(4096);
   unsigned int startup_vibes[] = { 27, 27, 0 };
   initButtons();
-
+#ifndef ESP_PLATFORM
   ledBlinkThread.onRun(blinkLED);
   ledBlinkThread.setInterval(500);
 
@@ -156,8 +164,6 @@ void setup() {
 #elif RP_PIO
   watchdog_enable(5000, 1);
   EEPROM.begin(512);
-#elif ESP_PLATFORM
-  EEPROM.begin(512);
 #endif
   refreshDeviceData();
   setup140();
@@ -167,7 +173,15 @@ void setup() {
   initDisplay();
   modeSwitch();
 
-#endif // 0
+#else // ESP_PLATFORM
+  ledBlinkHandle = xTimerCreate("blinkLED", pdMS_TO_TICKS(500), pdTRUE, NULL, blinkLED);
+  xTimerReset(ledBlinkHandle, portMAX_DELAY);
+  checkButtonsHandle = xTimerCreate("checkButtons", pdMS_TO_TICKS(5), pdTRUE, NULL, checkButtons);
+  xTimerReset(checkButtonsHandle, portMAX_DELAY);
+  xTaskCreate(updateDisplayTask, "updateDisplay", 5000, NULL, 1, NULL);
+  xTaskCreate(handleThrottleTask, "handleThrottle", 5000, NULL, 2, NULL);
+  xTaskCreate(handleTelemetryTask, "handleTelemetry", 5000, NULL, 1, NULL);
+  xTaskCreate(trackPowerTask, "trackPower", 5000, NULL, 1, NULL);
 
 #if defined (EPPG_BLE_SERVER) || defined (EPPG_BLE_CLIENT)
   ble.setConnectCallback(bleConnected);
@@ -181,6 +195,7 @@ void setup() {
   ble.setBatteryCallback(bleBatteryUpdate);
 #endif
   ble.begin();
+#endif
 #endif
 }
 
@@ -196,6 +211,44 @@ void bleStatusUpdate(uint32_t val){Serial.printf("Status update: %08x\n", val);}
 void bleBatteryUpdate(uint8_t val){Serial.printf("Battery update: %u\n", val);}
 #endif
 #endif
+
+#ifdef ESP_PLATFORM
+void updateDisplayTask(void * parameter) {
+  for(;;) {
+    updateDisplay();
+    delay(250);
+  }
+
+  vTaskDelete(NULL); // should never reach this
+}
+
+void handleThrottleTask(void * parameter) {
+  for(;;) {
+    handleThrottle();
+    delay(22);
+  }
+
+  vTaskDelete(NULL); // should never reach this
+}
+
+void handleTelemetryTask(void * parameter) {
+  for(;;) {
+    handleTelemetry();
+    delay(50);
+  }
+
+  vTaskDelete(NULL); // should never reach this
+}
+
+void trackPowerTask(void * parameter) {
+  for(;;) {
+    trackPower();
+    delay(250);
+  }
+
+  vTaskDelete(NULL); // should never reach this
+}
+#endif // ESP_PLATFORM
 
 void setup140() {
   esc.attach(ESC_PIN);
@@ -250,7 +303,11 @@ void loop1() {
 }
 #endif
 
+#ifdef ESP_PLATFORM
+void checkButtons(xTimerHandle pxTimer) {
+#else
 void checkButtons() {
+#endif
   button_top.check();
 }
 
@@ -270,7 +327,11 @@ void disarmSystem() {
   armed = false;
   removeCruise(false);
 
+#ifdef ESP_PLATFORM
+  xTimerReset(ledBlinkHandle, portMAX_DELAY);
+#else
   ledBlinkThread.enabled = true;
+#endif
   runVibe(disarm_vibes, 3);
   playMelody(disarm_melody, 3);
 
@@ -350,6 +411,10 @@ void resetDisplay() {
 // read throttle and send to hub
 // read throttle
 void handleThrottle() {
+#ifdef BLE_TEST
+  Serial.println("Handle Throttle");
+  return;
+#endif
   if (!armed) return;  // safe
 
   armedSecs = (millis() - armedAtMilis) / 1000;  // update time while armed
@@ -400,7 +465,12 @@ bool armSystem() {
   armed = true;
   esc.writeMicroseconds(ESC_DISARMED_PWM);  // initialize the signal to low
 
+#ifdef ESP_PLATFORM
+  xTimerStop(ledBlinkHandle, portMAX_DELAY);
+#else
   ledBlinkThread.enabled = false;
+#endif
+
   armedAtMilis = millis();
   armAltM = getAltitudeM();
 
@@ -442,6 +512,10 @@ bool screen_wiped = false;
 
 // show data on screen and handle different pages
 void updateDisplay() {
+#ifdef BLE_TEST
+  Serial.println("Update Display");
+  return;
+#endif
   if (!screen_wiped) {
     display.fillScreen(WHITE);
     screen_wiped = true;
@@ -664,6 +738,10 @@ void removeCruise(bool alert) {
 unsigned long prevPwrMillis = 0;
 
 void trackPower() {
+#ifdef BLE_TEST
+  Serial.println("Track Power");
+  return;
+#endif
   unsigned long currentPwrMillis = millis();
   unsigned long msec_diff = (currentPwrMillis - prevPwrMillis);  // eg 0.30 sec
   prevPwrMillis = currentPwrMillis;

@@ -55,7 +55,11 @@ void setLEDs(byte state) {
 }
 
 // toggle LEDs
+#ifdef ESP_PLATFORM
+void blinkLED(xTimerHandle pxTimer) {
+#else
 void blinkLED() {
+#endif
   byte ledState = !digitalRead(LED_SW);
   setLEDs(ledState);
 }

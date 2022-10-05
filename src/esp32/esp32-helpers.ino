@@ -157,6 +157,10 @@ void prepareSerialRead() {  // TODO needed?
 }
 
 void handleTelemetry() {
+#ifdef BLE_TEST
+  Serial.println("Handle Telemetry");
+  return;
+#endif
   prepareSerialRead();
   SerialESC.readBytes(escData, ESC_DATA_SIZE);
   if (enforceFletcher16()) {
