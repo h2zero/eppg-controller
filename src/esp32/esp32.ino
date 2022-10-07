@@ -109,6 +109,12 @@ EppgBLEServer ble;
 EppgBLEClient ble;
 #endif
 
+#ifdef BLE_LATENCY_TEST
+latency_test_t ble_lat_test;
+latency_test_t ble_lat_last;
+uint32_t disconnect_count;
+#endif
+
 #pragma message "Warning: OpenPPG software is in beta"
 
 // the setup function runs once when you press reset or power the board
@@ -201,13 +207,43 @@ void setup() {
 
 #if defined (EPPG_BLE_SERVER) || defined (EPPG_BLE_CLIENT)
 void bleConnected(){Serial.println("Client Connected");}
-void bleDisconnected(){Serial.println("Client Disconnected");}
+void bleDisconnected() {
+  Serial.println("Client Disconnected");
+#ifdef BLE_LATENCY_TEST
+  ble_lat_test = {0};
+  ble_lat_last = {0};
+  disconnect_count++;
+#endif
+}
+
 #if defined (EPPG_BLE_SERVER)
 void bleThrottleUpdate(int val){Serial.printf("Updated Throttle: %d\n", val);}
 void bleArm(){}
 void bleDisarm(){}
 #elif defined (EPPG_BLE_CLIENT)
+
+#ifdef BLE_LATENCY_TEST
+void bleStatusUpdate(latency_test_t &lat, int rssi) {
+  unsigned long cur_millis = millis();
+  unsigned long local_lat = cur_millis - ble_lat_test.time;
+  unsigned long remote_lat = lat.time - ble_lat_last.time;
+  unsigned long latency = (local_lat < remote_lat) ? 0 : local_lat - remote_lat;
+  if (ble_lat_test.count) {
+  //  Serial.printf("cur: %u, last: %u, rem_lat: %u, last_rem_lat: %u\n",
+  //                cur_millis, ble_lat_test.time, lat.time, ble_lat_last.time);
+    Serial.printf("Packet loss count: %u, Latency: %u, disconnects: %u, rssi: %d\n",
+                  lat.count - (++ble_lat_test.count), latency, disconnect_count, rssi);
+    ble_lat_test.time = cur_millis;
+  } else {
+    ble_lat_test.count = lat.count;
+    ble_lat_test.time = cur_millis;
+  }
+  ble_lat_last = lat;
+}
+#else
 void bleStatusUpdate(uint32_t val){Serial.printf("Status update: %08x\n", val);}
+#endif
+
 void bleBatteryUpdate(uint8_t val){Serial.printf("Battery update: %u\n", val);}
 #endif
 #endif
@@ -278,7 +314,13 @@ void loop() {
 #elif defined(BLE_TEST)
   #ifdef EPPG_BLE_SERVER
   ble.setBattery(random(0x00,0x64));
+#ifdef BLE_LATENCY_TEST
+  ble_lat_test.count++;
+  ble_lat_test.time = millis();
+  ble.setStatus(ble_lat_test);
+#else
   ble.setStatus(random(0x00,0xFFFF));
+#endif
   #elif EPPG_BLE_CLIENT
   ble.setThrottle(random(0x00, 0xFFFF));
   #endif
@@ -399,6 +441,9 @@ void initDisplay() {
 }
 
 void resetDisplay() {
+#ifdef BLE_TEST
+  return;
+#endif
   display.fillScreen(DEFAULT_BG_COLOR);
   display.setTextColor(BLACK);
   display.setCursor(0, 0);
@@ -412,7 +457,7 @@ void resetDisplay() {
 // read throttle
 void handleThrottle() {
 #ifdef BLE_TEST
-  Serial.println("Handle Throttle");
+  //Serial.println("Handle Throttle");
   return;
 #endif
   if (!armed) return;  // safe
@@ -513,7 +558,7 @@ bool screen_wiped = false;
 // show data on screen and handle different pages
 void updateDisplay() {
 #ifdef BLE_TEST
-  Serial.println("Update Display");
+  //Serial.println("Update Display");
   return;
 #endif
   if (!screen_wiped) {
@@ -739,7 +784,7 @@ unsigned long prevPwrMillis = 0;
 
 void trackPower() {
 #ifdef BLE_TEST
-  Serial.println("Track Power");
+  //Serial.println("Track Power");
   return;
 #endif
   unsigned long currentPwrMillis = millis();

@@ -13,12 +13,13 @@ static QueueHandle_t bleQueue;
 
 class ClientCallbacks : public NimBLEClientCallbacks {
   void onConnect(NimBLEClient* pClient) {
-    Serial.println("Connected");
+    unsigned long evt = bleEvent::CONNECTED;
+    xQueueSendToBack(bleQueue, &evt, 0);
   }
 
   void onDisconnect(NimBLEClient* pClient) {
-    Serial.print(pClient->getPeerAddress().toString().c_str());
-    Serial.println("Disconnected");
+    unsigned long evt = bleEvent::DISCONNECTED;
+    xQueueSendToBack(bleQueue, &evt, 0);
   }
 
   bool onConnParamsUpdateRequest(NimBLEClient* pClient, const ble_gap_upd_params* params) {
@@ -127,14 +128,20 @@ bool EppgBLEClient::isConnected() {
 
 void EppgBLEClient::statusNotify(NimBLERemoteCharacteristic *pChar,
                                  uint8_t *pData, size_t length, bool isNotify) {
+#ifndef BLE_LATENCY_TEST
   if (length != sizeof(uint32_t)) {
     Serial.println("Invalid status data");
     return;
   }
+#endif
 
   if (this->statusCB) {
+#ifdef BLE_LATENCY_TEST
+    latency_test_t val = *(latency_test_t*)pData;
+#else
     uint32_t val = *(uint32_t*)pData;
-    this->statusCB(val);
+#endif
+    this->statusCB(val, pClient->getRssi());
   }
 }
 

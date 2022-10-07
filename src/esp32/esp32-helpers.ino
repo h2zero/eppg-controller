@@ -158,7 +158,7 @@ void prepareSerialRead() {  // TODO needed?
 
 void handleTelemetry() {
 #ifdef BLE_TEST
-  Serial.println("Handle Telemetry");
+  //Serial.println("Handle Telemetry");
   return;
 #endif
   prepareSerialRead();

@@ -3,12 +3,21 @@
 
 #include <NimBLEDevice.h>
 
+typedef struct {
+  uint32_t count;
+  unsigned long time;
+} latency_test_t;
+
 typedef void (*connectCallback) ();
 typedef void (*disconnectCallback) ();
 typedef void (*throttleCallback) (int val);
 typedef void (*armCallback) ();
 typedef void (*disarmCallback) ();
+#ifdef BLE_LATENCY_TEST
+typedef void (*statusCallback) (latency_test_t &lat, int rssi);
+#else
 typedef void (*statusCallback) (uint32_t val);
+#endif
 typedef void (*batteryCallback) (uint8_t val);
 
 enum bleEvent {
@@ -34,7 +43,11 @@ public:
   void setThrottleCallback(throttleCallback cb) { throttleCB = cb; }
   void setArmCallback(armCallback cb) { armCB = cb; }
   void setDisarmCallback(disarmCallback cb) { disarmCB = cb; }
+#ifdef BLE_LATENCY_TEST
+  void setStatus(latency_test_t &lat);
+#else
   void setStatus(uint32_t val);
+#endif
   void setBattery(uint8_t val);
 };
 

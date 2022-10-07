@@ -70,8 +70,8 @@ void serverTask(void * parameter) {
           Serial.println("Failed to start advertising");
         }
       } else {
-        pStChar->notify();
-        pBattChr->notify();
+        //pStChar->notify();
+        //pBattChr->notify();
       }
     }
   }
@@ -111,10 +111,17 @@ void EppgBLEServer::processEvent(unsigned long event) {
   }
 }
 
+#ifdef BLE_LATENCY_TEST
+void EppgBLEServer::setStatus(latency_test_t &lat) {
+  pStChar->setValue(lat);
+  pStChar->notify();
+}
+#else
 void EppgBLEServer::setStatus(uint32_t val) {
   pStChar->setValue(val);
   pStChar->notify();
 }
+#endif
 
 void EppgBLEServer::setBattery(uint8_t val) {
   pBattChr->setValue(val);
