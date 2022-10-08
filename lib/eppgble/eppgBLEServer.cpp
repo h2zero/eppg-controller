@@ -5,10 +5,15 @@
 const char *SERVICE_UUID = "8877FB19-E00B-40BE-905E-ACB42C39E6B8";
 const char *TH_CHAR_UUID = "5A57F691-C0B9-45DD-BDF1-279681212C29";
 const char *STATUS_CHAR_UUID = "28913A56-5701-4B27-85DB-50985F224847";
+const char *ARM_CHAR_UUID = "aeb83642-7cc4-45e9-bdf9-c9450876d98d";
 
 static NimBLECharacteristic *pBattChr = nullptr;
 static NimBLECharacteristic *pThChar = nullptr;
 static NimBLECharacteristic *pStChar = nullptr;
+static NimBLECharacteristic *pArmChar = nullptr;
+static NimBLECharacteristic *pTempChar = nullptr;
+static NimBLECharacteristic *pBarChar = nullptr;
+
 static QueueHandle_t bleQueue;
 
 class ServerCallbacks : public NimBLEServerCallbacks {
@@ -36,19 +41,33 @@ class ServerCallbacks : public NimBLEServerCallbacks {
 
   void onAuthenticationComplete(ble_gap_conn_desc* desc) {
     if(!desc->sec_state.encrypted) {
-        NimBLEDevice::getServer()->disconnect(desc->conn_handle);
-        Serial.println("Encrypt connection failed - disconnecting client");
-        return;
+      NimBLEDevice::getServer()->disconnect(desc->conn_handle);
+      Serial.println("Encrypt connection failed - disconnecting client");
+      return;
     }
     Serial.println("Authentication Complete");
   }
 };
 
-class CharacteristicCallbacks: public NimBLECharacteristicCallbacks {
+class throttleChrCallbacks: public NimBLECharacteristicCallbacks {
   void onWrite(NimBLECharacteristic* pCharacteristic) {
     if (pCharacteristic == pThChar) {
       unsigned long evt = bleEvent::THROTTLE_UPDATE;
       xQueueSendToBack(bleQueue, &evt, 0);
+    }
+  }
+};
+
+class armChrCallbacks: public NimBLECharacteristicCallbacks {
+  void onWrite(NimBLECharacteristic* pCharacteristic) {
+    if (pCharacteristic == pArmChar) {
+      if (pCharacteristic->getValue<bool>()) {
+        unsigned long evt = bleEvent::ARM;
+        xQueueSendToBack(bleQueue, &evt, 0);
+      } else {
+        unsigned long evt = bleEvent::DISARM;
+        xQueueSendToBack(bleQueue, &evt, 0);
+      }
     }
   }
 };
@@ -135,16 +154,20 @@ void EppgBLEServer::begin() {
 
   NimBLEServer *pServer = NimBLEDevice::createServer();
   pServer->setCallbacks(new ServerCallbacks);
-  NimBLEService *pSvc = pServer->createService(SERVICE_UUID);
-  pThChar = pSvc->createCharacteristic(TH_CHAR_UUID,
+  NimBLEService *pMainSvc = pServer->createService(SERVICE_UUID);
+  pThChar = pMainSvc->createCharacteristic(TH_CHAR_UUID,
                                        NIMBLE_PROPERTY::READ     |
                                        NIMBLE_PROPERTY::WRITE    |
-                                       NIMBLE_PROPERTY::WRITE_NR |
                                        NIMBLE_PROPERTY::NOTIFY);
+  pThChar->setCallbacks(new throttleChrCallbacks);
 
-  pThChar->setCallbacks(new CharacteristicCallbacks);
+  pArmChar = pMainSvc->createCharacteristic(ARM_CHAR_UUID,
+                                      NIMBLE_PROPERTY::READ     |
+                                      NIMBLE_PROPERTY::WRITE    |
+                                      NIMBLE_PROPERTY::NOTIFY);
+  pArmChar->setCallbacks(new armChrCallbacks);
 
-  pStChar = pSvc->createCharacteristic(STATUS_CHAR_UUID,
+  pStChar = pMainSvc->createCharacteristic(STATUS_CHAR_UUID,
                                        NIMBLE_PROPERTY::READ |
                                        NIMBLE_PROPERTY::NOTIFY);
 
@@ -152,11 +175,16 @@ void EppgBLEServer::begin() {
   pBattChr = pBattSvc->createCharacteristic("2A19", NIMBLE_PROPERTY::READ |
                                                     NIMBLE_PROPERTY::NOTIFY, 1);
 
-  pSvc->start();
+  NimBLEService *pEnvService = pServer->createService("181A");
+  pTempChar = pEnvService->createCharacteristic("2A6E", NIMBLE_PROPERTY::READ, 2);
+  pBarChar = pEnvService->createCharacteristic("2A6D", NIMBLE_PROPERTY::READ,4);
+
+  pMainSvc->start();
   pBattSvc->start();
+  pEnvService->start();
 
   NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(pSvc->getUUID());
+  pAdvertising->addServiceUUID(pMainSvc->getUUID());
   pAdvertising->setScanResponse(false);
 
   bleQueue = xQueueCreate(32, sizeof(unsigned long));
