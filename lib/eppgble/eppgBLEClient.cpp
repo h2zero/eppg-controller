@@ -5,9 +5,6 @@
 #include <functional>
 using namespace std::placeholders;
 
-const char *SERVICE_UUID = "8877FB19-E00B-40BE-905E-ACB42C39E6B8";
-const char *TH_CHAR_UUID = "5A57F691-C0B9-45DD-BDF1-279681212C29";
-const char *STATUS_CHAR_UUID = "28913A56-5701-4B27-85DB-50985F224847";
 static NimBLEClient *pClient = nullptr;
 static QueueHandle_t bleQueue;
 
@@ -50,7 +47,7 @@ class AdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks {
   void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
     Serial.print("Advertised Device found: ");
     Serial.println(advertisedDevice->toString().c_str());
-    if(advertisedDevice->isAdvertisingService(NimBLEUUID(SERVICE_UUID)))
+    if(advertisedDevice->isAdvertisingService(NimBLEUUID(MAIN_SERVICE_UUID)))
     {
       Serial.println("Found openppg service");
       NimBLEDevice::getScan()->stop();
@@ -112,6 +109,30 @@ void EppgBLEClient::processEvent(unsigned long event) {
   }
 }
 
+bool EppgBLEClient::arm() {
+  if (!pClient->isConnected()) {
+    return false;
+  }
+
+  uint8_t val = 0x01;
+  NimBLEAttValue v((uint8_t*)&val, sizeof(val));
+
+  // Use write with response to verify.
+  return pClient->setValue(NimBLEUUID(MAIN_SERVICE_UUID), NimBLEUUID(ARM_CHAR_UUID), v, true);
+}
+
+bool EppgBLEClient::disarm() {
+  if (!pClient->isConnected()) {
+    return false;
+  }
+
+  uint8_t val = 0x00;
+  NimBLEAttValue v((uint8_t*)&val, sizeof(val));
+
+  // Use write with response to verify.
+  return pClient->setValue(NimBLEUUID(MAIN_SERVICE_UUID), NimBLEUUID(ARM_CHAR_UUID), v, true);
+}
+
 bool EppgBLEClient::setThrottle(int val) {
   if (!pClient->isConnected()) {
     return false;
@@ -119,7 +140,7 @@ bool EppgBLEClient::setThrottle(int val) {
 
   NimBLEAttValue v((uint8_t*)&val, sizeof(val));
   // Use write with response to verify.
-  return pClient->setValue(NimBLEUUID(SERVICE_UUID), NimBLEUUID(TH_CHAR_UUID), v, true);
+  return pClient->setValue(NimBLEUUID(MAIN_SERVICE_UUID), NimBLEUUID(TH_CHAR_UUID), v, true);
 }
 
 bool EppgBLEClient::isConnected() {
@@ -177,7 +198,7 @@ bool EppgBLEClient::connect() {
   NimBLERemoteCharacteristic* pStChr = nullptr;
 
   if (pClient->isConnected()) {
-    pMainSvc = pClient->getService(SERVICE_UUID);
+    pMainSvc = pClient->getService(MAIN_SERVICE_UUID);
     if (pMainSvc) {
       pThChr = pMainSvc->getCharacteristic(TH_CHAR_UUID);
       pStChr = pMainSvc->getCharacteristic(STATUS_CHAR_UUID);

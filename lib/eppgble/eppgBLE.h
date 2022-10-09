@@ -3,6 +3,19 @@
 
 #include <NimBLEDevice.h>
 
+/* Generated UUID's */
+const char* const MAIN_SERVICE_UUID = "8877FB19-E00B-40BE-905E-ACB42C39E6B8";
+const char* const TH_CHAR_UUID = "5A57F691-C0B9-45DD-BDF1-279681212C29";
+const char* const STATUS_CHAR_UUID = "28913A56-5701-4B27-85DB-50985F224847";
+const char* const ARM_CHAR_UUID = "aeb83642-7cc4-45e9-bdf9-c9450876d98d";
+
+/* BLE standard UUID's */
+const char* const BATT_SERVICE_UUID = "180F";
+const char* const BATT_CHAR_UUID = "2A19";
+const char* const ENV_SERVICE_UUID = "181A";
+const char* const TEMP_CHAR_UUID = "2A6E";
+const char* const BARO_CHAR_UUID = "2A6D";
+
 typedef struct {
   uint32_t count;
   unsigned long time;
@@ -73,6 +86,8 @@ public:
   bool connect();
   bool disconnect();
   bool setThrottle(int val);
+  bool arm();
+  bool disarm();
 };
 
 #endif // _EPPG_BLE_H

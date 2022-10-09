@@ -218,8 +218,8 @@ void bleDisconnected() {
 
 #if defined (EPPG_BLE_SERVER)
 void bleThrottleUpdate(int val){Serial.printf("Updated Throttle: %d\n", val);}
-void bleArm(){}
-void bleDisarm(){}
+void bleArm(){Serial.println("Armed from BLE");}
+void bleDisarm(){Serial.println("Disarmed from BLE");}
 #elif defined (EPPG_BLE_CLIENT)
 
 #ifdef BLE_LATENCY_TEST
@@ -314,15 +314,23 @@ void loop() {
 #elif defined(BLE_TEST)
   #ifdef EPPG_BLE_SERVER
   ble.setBattery(random(0x00,0x64));
-#ifdef BLE_LATENCY_TEST
+    #ifdef BLE_LATENCY_TEST
   ble_lat_test.count++;
   ble_lat_test.time = millis();
   ble.setStatus(ble_lat_test);
-#else
+    #else
   ble.setStatus(random(0x00,0xFFFF));
-#endif
+    #endif
   #elif EPPG_BLE_CLIENT
-  ble.setThrottle(random(0x00, 0xFFFF));
+  Serial.printf("Set throttle: %s\n", ble.setThrottle(random(0x00, 0xFFFF)) ? "success" : "failed");
+  if (!armed) {
+    Serial.printf("Set Arm: %s\n", ble.arm() ? "success" : "failed");
+    armed = true;
+  } else {
+    Serial.printf("Set Disarm: %s\n", ble.disarm() ? "success" : "failed");
+    armed = false;
+  }
+
   #endif
   delay(1000);
 #endif
@@ -725,7 +733,7 @@ void displayVersions() {
 }
 
 // display hidden page (firmware version and total armed time)
-void displayMessage(char *message) {
+void displayMessage(const char *message) {
   display.setCursor(0, 0);
   display.setTextSize(2);
   display.println(message);

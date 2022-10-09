@@ -2,17 +2,12 @@
 #include <NimBLEDevice.h>
 #include "eppgBLE.h"
 
-const char *SERVICE_UUID = "8877FB19-E00B-40BE-905E-ACB42C39E6B8";
-const char *TH_CHAR_UUID = "5A57F691-C0B9-45DD-BDF1-279681212C29";
-const char *STATUS_CHAR_UUID = "28913A56-5701-4B27-85DB-50985F224847";
-const char *ARM_CHAR_UUID = "aeb83642-7cc4-45e9-bdf9-c9450876d98d";
-
 static NimBLECharacteristic *pBattChr = nullptr;
 static NimBLECharacteristic *pThChar = nullptr;
 static NimBLECharacteristic *pStChar = nullptr;
 static NimBLECharacteristic *pArmChar = nullptr;
 static NimBLECharacteristic *pTempChar = nullptr;
-static NimBLECharacteristic *pBarChar = nullptr;
+static NimBLECharacteristic *pBaroChar = nullptr;
 
 static QueueHandle_t bleQueue;
 
@@ -61,7 +56,8 @@ class throttleChrCallbacks: public NimBLECharacteristicCallbacks {
 class armChrCallbacks: public NimBLECharacteristicCallbacks {
   void onWrite(NimBLECharacteristic* pCharacteristic) {
     if (pCharacteristic == pArmChar) {
-      if (pCharacteristic->getValue<bool>()) {
+      uint8_t val = pCharacteristic->getValue<uint8_t>();
+      if (val) {
         unsigned long evt = bleEvent::ARM;
         xQueueSendToBack(bleQueue, &evt, 0);
       } else {
@@ -154,7 +150,7 @@ void EppgBLEServer::begin() {
 
   NimBLEServer *pServer = NimBLEDevice::createServer();
   pServer->setCallbacks(new ServerCallbacks);
-  NimBLEService *pMainSvc = pServer->createService(SERVICE_UUID);
+  NimBLEService *pMainSvc = pServer->createService(MAIN_SERVICE_UUID);
   pThChar = pMainSvc->createCharacteristic(TH_CHAR_UUID,
                                        NIMBLE_PROPERTY::READ     |
                                        NIMBLE_PROPERTY::WRITE    |
@@ -164,20 +160,21 @@ void EppgBLEServer::begin() {
   pArmChar = pMainSvc->createCharacteristic(ARM_CHAR_UUID,
                                       NIMBLE_PROPERTY::READ     |
                                       NIMBLE_PROPERTY::WRITE    |
-                                      NIMBLE_PROPERTY::NOTIFY);
+                                      NIMBLE_PROPERTY::NOTIFY, 1);
   pArmChar->setCallbacks(new armChrCallbacks);
 
   pStChar = pMainSvc->createCharacteristic(STATUS_CHAR_UUID,
                                        NIMBLE_PROPERTY::READ |
                                        NIMBLE_PROPERTY::NOTIFY);
 
-  NimBLEService *pBattSvc = pServer->createService("180F");
-  pBattChr = pBattSvc->createCharacteristic("2A19", NIMBLE_PROPERTY::READ |
-                                                    NIMBLE_PROPERTY::NOTIFY, 1);
+  NimBLEService *pBattSvc = pServer->createService(BATT_SERVICE_UUID);
+  pBattChr = pBattSvc->createCharacteristic(BATT_CHAR_UUID,
+                                            NIMBLE_PROPERTY::READ |
+                                            NIMBLE_PROPERTY::NOTIFY, 1);
 
-  NimBLEService *pEnvService = pServer->createService("181A");
-  pTempChar = pEnvService->createCharacteristic("2A6E", NIMBLE_PROPERTY::READ, 2);
-  pBarChar = pEnvService->createCharacteristic("2A6D", NIMBLE_PROPERTY::READ,4);
+  NimBLEService *pEnvService = pServer->createService(ENV_SERVICE_UUID);
+  pTempChar = pEnvService->createCharacteristic(TEMP_CHAR_UUID, NIMBLE_PROPERTY::READ, 2);
+  pBaroChar = pEnvService->createCharacteristic(BARO_CHAR_UUID, NIMBLE_PROPERTY::READ, 4);
 
   pMainSvc->start();
   pBattSvc->start();
