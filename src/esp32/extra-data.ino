@@ -62,9 +62,6 @@ void line_state_callback(bool connected) {
 // customized for sp140
 void parse_usb_serial() {
 #ifdef USE_TINYUSB
-#ifdef ESP_PLATFORM
-  return; // TODO: Implement for ESP32
-#endif
   const size_t capacity = JSON_OBJECT_SIZE(12) + 90;
   DynamicJsonDocument doc(capacity);
   deserializeJson(doc, usb_web);
