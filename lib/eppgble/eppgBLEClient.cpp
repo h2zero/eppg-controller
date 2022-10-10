@@ -159,10 +159,11 @@ void EppgBLEClient::statusNotify(NimBLERemoteCharacteristic *pChar,
   if (this->statusCB) {
 #ifdef BLE_LATENCY_TEST
     latency_test_t val = *(latency_test_t*)pData;
+    this->statusCB(val, pClient->getRssi());
 #else
     uint32_t val = *(uint32_t*)pData;
+    this->statusCB(val);
 #endif
-    this->statusCB(val, pClient->getRssi());
   }
 }
 

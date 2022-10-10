@@ -14,7 +14,7 @@ const char* const BATT_SERVICE_UUID = "180F";
 const char* const BATT_CHAR_UUID = "2A19";
 const char* const ENV_SERVICE_UUID = "181A";
 const char* const TEMP_CHAR_UUID = "2A6E";
-const char* const BARO_CHAR_UUID = "2A6D";
+const char* const BARO_CHAR_UUID = "2A6D"; // TODO: Change to to 2AB3 (elevation)
 
 typedef struct {
   uint32_t count;

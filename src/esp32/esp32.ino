@@ -133,9 +133,10 @@ void setup() {
   #endif
 #endif
 
+#ifndef ESP_PLATFORM
   SerialESC.begin(ESC_BAUD_RATE);
   SerialESC.setTimeout(ESC_TIMEOUT);
-#ifndef ESP_PLATFORM
+
   //Serial.print(F("Booting up (USB) V"));
   //Serial.print(VERSION_MAJOR + "." + VERSION_MINOR);
 
@@ -180,116 +181,15 @@ void setup() {
   modeSwitch();
 
 #else // ESP_PLATFORM
-  #if defined(EPPG_BLE_SERVER) || defined(EPPG_BLE_CLIENT)
-  ble.setConnectCallback(bleConnected);
-  ble.setDisconnectCallback(bleDisconnected);
-    #if defined(EPPG_BLE_SERVER)
-  xTaskCreate(trackPowerTask, "trackPower", 5000, NULL, 1, NULL);
-  xTaskCreate(handleTelemetryTask, "handleTelemetry", 5000, NULL, 1, NULL);
+  #if defined(EPPG_BLE_SERVER)
+  setupBleServer();
+  #endif
 
-  ble.setThrottleCallback(bleThrottleUpdate);
-  ble.setArmCallback(bleArm);
-  ble.setDisarmCallback(bleDisarm);
-
-    #elif defined(EPPG_BLE_CLIENT)
-  initButtons();
-  EEPROM.begin(512);
-  refreshDeviceData();
-  ledBlinkHandle = xTimerCreate("blinkLED", pdMS_TO_TICKS(500), pdTRUE, NULL, blinkLED);
-  xTimerReset(ledBlinkHandle, portMAX_DELAY);
-  checkButtonsHandle = xTimerCreate("checkButtons", pdMS_TO_TICKS(5), pdTRUE, NULL, checkButtons);
-  xTimerReset(checkButtonsHandle, portMAX_DELAY);
-  xTaskCreate(updateDisplayTask, "updateDisplay", 5000, NULL, 1, NULL);
-  xTaskCreate(handleThrottleTask, "handleThrottle", 5000, NULL, 2, NULL);
-
-  ble.setStatusCallback(bleStatusUpdate);
-  ble.setBatteryCallback(bleBatteryUpdate);
-    #endif
-  ble.begin();
-  #endif // EPPG_BLE_SERVER || EPPG_BLE_CLIENT
+  #if defined(EPPG_BLE_CLIENT)
+  setupBleClient();
+  #endif
 #endif // ESP_PLATFORM
 }
-
-#if defined (EPPG_BLE_SERVER) || defined (EPPG_BLE_CLIENT)
-void bleConnected(){Serial.println("Client Connected");}
-void bleDisconnected() {
-  Serial.println("Client Disconnected");
-  #ifdef BLE_LATENCY_TEST
-  ble_lat_test = {0};
-  ble_lat_last = {0};
-  disconnect_count++;
-  #endif
-}
-
-  #if defined(EPPG_BLE_SERVER)
-void bleThrottleUpdate(int val){Serial.printf("Updated Throttle: %d\n", val);}
-void bleArm(){Serial.println("Armed from BLE");}
-void bleDisarm(){Serial.println("Disarmed from BLE");}
-  #elif defined(EPPG_BLE_CLIENT)
-
-    #ifdef BLE_LATENCY_TEST
-void bleStatusUpdate(latency_test_t &lat, int rssi) {
-  unsigned long cur_millis = millis();
-  unsigned long local_lat = cur_millis - ble_lat_test.time;
-  unsigned long remote_lat = lat.time - ble_lat_last.time;
-  unsigned long latency = (local_lat < remote_lat) ? 0 : local_lat - remote_lat;
-  if (ble_lat_test.count) {
-  //  Serial.printf("cur: %u, last: %u, rem_lat: %u, last_rem_lat: %u\n",
-  //                cur_millis, ble_lat_test.time, lat.time, ble_lat_last.time);
-    Serial.printf("Packet loss count: %u, Latency: %u, disconnects: %u, rssi: %d\n",
-                  lat.count - (++ble_lat_test.count), latency, disconnect_count, rssi);
-    ble_lat_test.time = cur_millis;
-  } else {
-    ble_lat_test.count = lat.count;
-    ble_lat_test.time = cur_millis;
-  }
-  ble_lat_last = lat;
-}
-    #else
-void bleStatusUpdate(uint32_t val){Serial.printf("Status update: %08x\n", val);}
-    #endif // BLE_LATENCY_TEST
-
-void bleBatteryUpdate(uint8_t val){Serial.printf("Battery update: %u\n", val);}
-  #endif // EPPG_BLE_SERVER
-#endif // EPPG_BLE_SERVER || EPPG_BLE_CLIENT
-
-#if defined(EPPG_BLE_CLIENT)
-void updateDisplayTask(void * parameter) {
-  for(;;) {
-    updateDisplay();
-    delay(250);
-  }
-
-  vTaskDelete(NULL); // should never reach this
-}
-
-void handleThrottleTask(void * parameter) {
-  for(;;) {
-    handleThrottle();
-    delay(22);
-  }
-
-  vTaskDelete(NULL); // should never reach this
-}
-#elif defined(EPPG_BLE_SERVER)
-void handleTelemetryTask(void * parameter) {
-  for(;;) {
-    handleTelemetry();
-    delay(50);
-  }
-
-  vTaskDelete(NULL); // should never reach this
-}
-
-void trackPowerTask(void * parameter) {
-  for(;;) {
-    trackPower();
-    delay(250);
-  }
-
-  vTaskDelete(NULL); // should never reach this
-}
-#endif // EPPG_BLE_CLIENT
 
 void setup140() {
   esc.attach(ESC_PIN);
@@ -310,34 +210,21 @@ void loop() {
 #endif
 
   // from WebUSB to both Serial & webUSB
-#ifdef USE_TINYUSB
+#if defined(USE_TINYUSB) && !defined(BLE_TEST) // causes delay?
   if (!armed && usb_web.available()) parse_usb_serial();
 #endif
 
 #ifndef ESP_PLATFORM
   threads.run();
-#elif defined(BLE_TEST)
+#else
   #ifdef EPPG_BLE_SERVER
-  ble.setBattery(random(0x00,0x64));
-    #ifdef BLE_LATENCY_TEST
-  ble_lat_test.count++;
-  ble_lat_test.time = millis();
-  ble.setStatus(ble_lat_test);
-    #else
-  ble.setStatus(random(0x00,0xFFFF));
-    #endif
-  #elif EPPG_BLE_CLIENT
-  Serial.printf("Set throttle: %s\n", ble.setThrottle(random(0x00, 0xFFFF)) ? "success" : "failed");
-  if (!armed) {
-    Serial.printf("Set Arm: %s\n", ble.arm() ? "success" : "failed");
-    armed = true;
-  } else {
-    Serial.printf("Set Disarm: %s\n", ble.disarm() ? "success" : "failed");
-    armed = false;
-  }
-  delay(1000);
-  #endif // EPPG_BLE_SERVER
-#endif // BLE_TEST
+  bleServerLoop();
+  #endif
+
+  #ifdef EPPG_BLE_CLIENT
+  bleClientLoop();
+  #endif
+#endif // ESP_PLATFORM
 }
 
 #ifdef RP_PIO
@@ -367,15 +254,17 @@ void checkButtons() {
 
 // disarm, remove cruise, alert, save updated stats
 void disarmSystem() {
-#if !defined(EPPG_BLE_CLIENT)
   throttlePWM = ESC_DISARMED_PWM;
+#if !defined(EPPG_BLE_CLIENT)
+  armed = false;
   esc.writeMicroseconds(ESC_DISARMED_PWM);
-  //Serial.println(F("disarmed"));
 #else
-  ble.disarm();
+  armed = !ble.disarm();
+  Serial.printf("Disarm: %s\n", !armed ? "success" : "failed");
 #endif
+  //Serial.println(F("disarmed"));
 
-#if !defined(EPPG_BLE_SERVER)
+#ifndef BLE_TEST
   // reset smoothing
   potBuffer.clear();
   prevPotLvl = 0;
@@ -383,8 +272,8 @@ void disarmSystem() {
   u_int16_t disarm_melody[] = { 2093, 1976, 880 };
   unsigned int disarm_vibes[] = { 100, 0 };
 
-  armed = false;
   removeCruise(false);
+#endif
 
   #ifdef ESP_PLATFORM
   xTimerReset(ledBlinkHandle, portMAX_DELAY);
@@ -392,6 +281,7 @@ void disarmSystem() {
   ledBlinkThread.enabled = true;
   #endif
 
+#ifndef BLE_TEST
   runVibe(disarm_vibes, 3);
   playMelody(disarm_melody, 3);
 
@@ -403,8 +293,8 @@ void disarmSystem() {
   refreshDeviceData();
   deviceData.armed_time += round(armedSecs / 60);  // convert to mins
   writeDeviceData();
+#endif
   delay(1000);  // TODO just disable button thread // dont allow immediate rearming
-#endif // EPPG_BLE_SERVER
 }
 
 // The event handler for the the buttons
@@ -475,17 +365,17 @@ void resetDisplay() {
 // read throttle and send to hub
 // read throttle
 void handleThrottle() {
-#ifdef BLE_TEST
-  //Serial.println("Handle Throttle");
-  return;
-#endif
   if (!armed) return;  // safe
 
   armedSecs = (millis() - armedAtMilis) / 1000;  // update time while armed
 
   static int maxPWM = ESC_MAX_PWM;
+#ifdef BLE_TEST
+  int potRaw = random(0, 4095);
+#else
   pot.update();
   int potRaw = pot.getValue();
+#endif
 
   if (cruising) {
     unsigned long cruisingSecs = (millis() - cruisedAtMilis) / 1000;
@@ -519,7 +409,13 @@ void handleThrottle() {
   }
 
 #if defined(EPPG_BLE_CLIENT)
+  #ifdef BLE_TEST
+  Serial.printf("Set throttle: %d, %s\n", (int)throttlePWM,
+                ble.setThrottle(throttlePWM) ? "success" : "failed");
+  #else
+  // TODO: consider not sending the data if unchanged.
   ble.setThrottle(throttlePWM);
+  #endif
 #else
   esc.writeMicroseconds(throttlePWM);  // using val as the signal to esc
 #endif
@@ -527,23 +423,26 @@ void handleThrottle() {
 
 // get the PPG ready to fly
 bool armSystem() {
-  armed = true;
-#if !defined(EPPG_BLE_CLIENT)
-  esc.writeMicroseconds(ESC_DISARMED_PWM);  // initialize the signal to low
-#else
-  ble.arm();
-
-  #ifdef ESP_PLATFORM
-  xTimerStop(ledBlinkHandle, portMAX_DELAY);
-  #else
-  ledBlinkThread.enabled = false;
-  #endif
-
-  armedAtMilis = millis();
-  armAltM = getAltitudeM();
-
   uint16_t arm_melody[] = { 1760, 1976, 2093 };
   unsigned int arm_vibes[] = { 70, 33, 0 };
+
+#if !defined(EPPG_BLE_CLIENT)
+  armed = true;
+  esc.writeMicroseconds(ESC_DISARMED_PWM);  // initialize the signal to low
+#else
+  armed = ble.arm();
+  Serial.printf("Arm: %s\n", armed ? "success" : "failed");
+#endif
+
+#ifdef ESP_PLATFORM
+  xTimerStop(ledBlinkHandle, portMAX_DELAY);
+#else
+  ledBlinkThread.enabled = false;
+#endif
+
+#ifndef BLE_TEST
+  armedAtMilis = millis();
+  armAltM = getAltitudeM();
 
   setLEDs(HIGH);
   runVibe(arm_vibes, 3);
@@ -551,7 +450,6 @@ bool armSystem() {
 
   bottom_bg_color = ARMED_BG_COLOR;
   display.fillRect(0, 93, 160, 40, bottom_bg_color);
-
 #endif
   return true;
 }
