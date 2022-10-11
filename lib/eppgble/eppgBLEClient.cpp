@@ -143,6 +143,22 @@ bool EppgBLEClient::setThrottle(int val) {
   return pClient->setValue(NimBLEUUID(MAIN_SERVICE_UUID), NimBLEUUID(TH_CHAR_UUID), v, true);
 }
 
+float EppgBLEClient::getTemp() {
+  if (!pClient->isConnected()) {
+    return 0;
+  }
+  NimBLEAttValue v = pClient->getValue(NimBLEUUID(ENV_SERVICE_UUID), NimBLEUUID(TEMP_CHAR_UUID));
+  return (float)(v.getValue<int16_t>() / 100.0F);
+}
+
+float EppgBLEClient::getBmp() {
+  if (!pClient->isConnected()) {
+    return 0;
+  }
+  NimBLEAttValue v = pClient->getValue(NimBLEUUID(ENV_SERVICE_UUID), NimBLEUUID(BARO_CHAR_UUID));
+  return (float)(v.getValue<uint32_t>() / 10.0F);
+}
+
 bool EppgBLEClient::isConnected() {
   return pClient->isConnected();
 }

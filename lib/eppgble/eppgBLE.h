@@ -62,6 +62,8 @@ public:
   void setStatus(uint32_t val);
 #endif
   void setBattery(uint8_t val);
+  void setTemp(double temp);
+  void setBmp(double pressure);
 };
 
 class EppgBLEClient {
@@ -88,6 +90,8 @@ public:
   bool setThrottle(int val);
   bool arm();
   bool disarm();
+  float getBmp();
+  float getTemp();
 };
 
 #endif // _EPPG_BLE_H

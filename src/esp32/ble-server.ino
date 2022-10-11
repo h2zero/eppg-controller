@@ -29,6 +29,18 @@ void bleDisarm() {
 void handleTelemetryTask(void * parameter) {
   for (;;) {
     handleTelemetry();
+#ifndef BLE_TEST
+    bmp.performReading();
+    ble.setTemp(bmp.temperature);
+    ble.setBmp(bmp.pressure);
+#else
+    double temp = random(1, 50);
+    temp += (random(1, 99) / 100.0F);
+    ble.setTemp(temp);
+    double pressure = random(300, 0xFFFF);
+    pressure += (random(1, 99) / 100.0F);
+    ble.setBmp(pressure);
+#endif
     delay(50);
   }
 
@@ -53,14 +65,13 @@ void setupBleServer() {
   ble.setThrottleCallback(bleThrottleUpdate);
   ble.setArmCallback(bleArm);
   ble.setDisarmCallback(bleDisarm);
-
-  xTaskCreate(trackPowerTask, "trackPower", 5000, NULL, 1, NULL);
-  xTaskCreate(handleTelemetryTask, "handleTelemetry", 5000, NULL, 1, NULL);
+  ble.begin();
 
   esc.attach(ESC_PIN);
   esc.writeMicroseconds(ESC_DISARMED_PWM);
 
-  ble.begin();
+  xTaskCreate(trackPowerTask, "trackPower", 5000, NULL, 1, NULL);
+  xTaskCreate(handleTelemetryTask, "handleTelemetry", 5000, NULL, 1, NULL);
 }
 
 void bleServerLoop() {

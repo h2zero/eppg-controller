@@ -92,6 +92,7 @@ void bleClientLoop() {
   } else {
     disarmSystem();
   }
+  Serial.printf("Temp: %f, pressure %f\n", ble.getTemp(), ble.getBmp());
   delay(1000);
 #endif
 }

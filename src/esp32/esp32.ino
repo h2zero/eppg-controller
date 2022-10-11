@@ -466,9 +466,15 @@ bool throttleSafe() {
 
 // convert barometer data to altitude in meters
 float getAltitudeM() {
+#ifdef EPPG_BLE_CLIENT
+  ambientTempC = ble.getTemp();
+  float atmospheric = ble.getBmp() / 100.0F;
+  float altitudeM = 44330.0 * (1.0 - pow(atmospheric / deviceData.sea_pressure, 0.1903));
+#else
   bmp.performReading();
   ambientTempC = bmp.temperature;
   float altitudeM = bmp.readAltitude(deviceData.sea_pressure);
+#endif
   aglM = altitudeM - armAltM;
   return altitudeM;
 }
