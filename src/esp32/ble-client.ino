@@ -66,6 +66,10 @@ void setupBleClient() {
   EEPROM.begin(512);
   refreshDeviceData();
 
+  ble.setStatusCallback(bleStatusUpdate);
+  ble.setBatteryCallback(bleBatteryUpdate);
+  ble.begin();
+
   // 500ms timer to blink the LED.
   ledBlinkHandle = xTimerCreate("blinkLED", pdMS_TO_TICKS(500), pdTRUE, NULL, blinkLED);
   xTimerReset(ledBlinkHandle, portMAX_DELAY);
@@ -79,10 +83,6 @@ void setupBleClient() {
 
   //initDisplay();
   //modeSwitch();
-
-  ble.setStatusCallback(bleStatusUpdate);
-  ble.setBatteryCallback(bleBatteryUpdate);
-  ble.begin();
 }
 
 void bleClientLoop() {
