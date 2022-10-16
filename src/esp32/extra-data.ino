@@ -67,8 +67,7 @@ void parse_usb_serial() {
   deserializeJson(doc, usb_web);
 
   if (doc["command"] && doc["command"] == "rbl") {
-    display.fillScreen(DEFAULT_BG_COLOR);
-    displayMessage("BL - UF2");
+    display.displayBootLoader();
     rebootBootloader();
     return;  // run only the command
   }
@@ -83,7 +82,7 @@ void parse_usb_serial() {
   deviceData.batt_size = doc["batt_size"];  // 4000
   sanitizeDeviceData();
   writeDeviceData();
-  resetDisplay();
+  display.reset();
   send_usb_serial();
 #endif
 }

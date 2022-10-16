@@ -1,8 +1,6 @@
 // Copyright 2019 <Zach Whitehead>
 // OpenPPG
 
-#define LAST_PAGE 1  // starts at 0
-
 #ifdef M0_PIO
 
 #define DBL_TAP_PTR ((volatile uint32_t *)(HMCRAMC0_ADDR + HMCRAMC0_SIZE - 4))
@@ -14,38 +12,6 @@
 // Map double values
 double mapd(double x, double in_min, double in_max, double out_min, double out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-/**
- * For digital time display - prints leading 0
- *
- * @param digits number to be converted to a string.
- * @return string `12`, or 07 if `digits` is less than 10.
- */
-String convertToDigits(byte digits) {
-  String digits_string = "";
-  if (digits < 10) digits_string.concat("0");
-  digits_string.concat(digits);
-  return digits_string;
-}
-
-/**
- * advance to next screen page
- *
- * @return the number of next page
- */
-int nextPage() {
-  display.fillRect(0, 37, 160, 54, DEFAULT_BG_COLOR);
-
-  if (page >= LAST_PAGE) {
-    return page = 0;
-  }
-  return ++page;
-}
-
-void addVSpace() {
-  display.setTextSize(1);
-  display.println(" ");
 }
 
 void setLEDs(byte state) {
@@ -173,19 +139,3 @@ void rebootBootloader() {
   //TODO enter DFU mode
 }
 #endif
-
-void displayMeta() {
-  display.setFont(&FreeSansBold12pt7b);
-  display.setTextColor(BLACK);
-  display.setCursor(25, 30);
-  display.println("OpenPPG");
-  display.setFont();
-  display.setTextSize(2);
-  display.setCursor(60, 60);
-  display.print("v" + String(VERSION_MAJOR) + "." + String(VERSION_MINOR));
-#ifdef RP_PIO
-  display.print("R");
-#endif
-  display.setCursor(54, 90);
-  displayTime(deviceData.armed_time);
-}

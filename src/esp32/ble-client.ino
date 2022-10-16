@@ -36,7 +36,7 @@ void bleBatteryUpdate(uint8_t val){Serial.printf("Battery update: %u\n", val);}
 
 void updateDisplayTask(void * parameter) {
   for (;;) {
-    updateDisplay();
+    display.update();
     delay(250); // Update display every 250ms
   }
 
@@ -80,9 +80,6 @@ void setupBleClient() {
 
   xTaskCreate(updateDisplayTask, "updateDisplay", 5000, NULL, 1, NULL);
   xTaskCreate(handleThrottleTask, "handleThrottle", 5000, NULL, 2, NULL);
-
-  //initDisplay();
-  //modeSwitch();
 }
 
 void bleClientLoop() {
