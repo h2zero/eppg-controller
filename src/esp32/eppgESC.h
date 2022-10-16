@@ -1,5 +1,5 @@
-#ifndef EPPG_ESC_H_
-#define EPPG_ESC_H_
+#ifndef INC_EPPG_ESC_H_
+#define INC_EPPG_ESC_H_
 
 #ifndef ESC_DISABLED
 
@@ -45,4 +45,4 @@ public:
 };
 
 #endif // ESC_DISABLED
-#endif // EPPG_ESC_H_
+#endif // INC_EPPG_ESC_H_

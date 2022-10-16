@@ -1,5 +1,16 @@
 // Copyright 2019 <Zach Whitehead>
 // OpenPPG
+#include <Arduino.h>
+#ifdef M0_PIO
+  #include "../../inc/sp140/m0-config.h"          // device config
+#elif RP_PIO
+  #include "../../inc/sp140/rp2040-config.h"         // device config
+#elif ESP_PLATFORM
+  #include "../../inc/esp32/esp32-config.h"
+#endif
+#include "../../inc/esp32/structs.h"
+#include "../../inc/esp32/globals.h"
+#include "eppgUtils.h"
 
 #ifdef M0_PIO
 
@@ -9,72 +20,11 @@
 
 #endif
 
+extern STR_DEVICE_DATA_140_V1 deviceData;
+
 // Map double values
 double mapd(double x, double in_min, double in_max, double out_min, double out_max) {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-void setLEDs(byte state) {
-  // digitalWrite(LED_2, state);
-  // digitalWrite(LED_3, state);
-  digitalWrite(LED_SW, state);
-}
-
-// toggle LEDs
-#ifdef ESP_PLATFORM
-void blinkLED(xTimerHandle pxTimer) {
-#else
-void blinkLED() {
-#endif
-  byte ledState = !digitalRead(LED_SW);
-  setLEDs(ledState);
-}
-
-bool runVibe(unsigned int sequence[], int siz) {
-  if (!ENABLE_VIB) { return false; }
-
-  for (int thisVibe = 0; thisVibe < siz; thisVibe++) {
-    vibe.setWaveform(thisVibe, sequence[thisVibe]);
-  }
-  vibe.go();
-  return true;
-}
-
-bool playMelody(uint16_t melody[], int siz) {
-  if (!ENABLE_BUZ) { return false; }
-  for (int thisNote = 0; thisNote < siz; thisNote++) {
-    // quarter note = 1000 / 4, eigth note = 1000/8, etc.
-    int noteDuration = 125;
-    playNote(melody[thisNote], noteDuration);
-  }
-  return true;
-}
-
-#ifdef RP_PIO
-// non-blocking tone function that uses second core
-void playNote(uint16_t note, uint16_t duration) {
-    STR_NOTE noteData;
-    // fifo uses 32 bit messages so package up the note and duration
-    uint32_t note_msg;
-    noteData.duration = duration;
-    noteData.freq = note;
-
-    memcpy((uint32_t*)&note_msg, &noteData, sizeof(noteData));
-    rp2040.fifo.push_nb(note_msg);  // send note to second core via fifo queue
-}
-#else
-// blocking tone function that delays for notes
-void playNote(uint16_t note, uint16_t duration) {
-  // quarter note = 1000 / 4, eigth note = 1000/8, etc.
-  tone(BUZZER_PIN, note);
-  delay(duration);  // to distinguish the notes, delay between them
-  noTone(BUZZER_PIN);
-}
-#endif
-
-void handleArmFail() {
-  uint16_t arm_fail_melody[] = { 820, 640 };
-  playMelody(arm_fail_melody, 2);
 }
 
 // for debugging

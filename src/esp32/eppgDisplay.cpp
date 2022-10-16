@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "display.h"
+#include "eppgDisplay.h"
 
 #ifndef DISPLAY_DISABLED
 
@@ -12,17 +12,17 @@
 #endif
 #include <TimeLib.h>  // convert time to hours mins etc
 #include <Fonts/FreeSansBold12pt7b.h>
-#include "../../inc/esp32/structs.h"         // data structs
+#include "../../inc/esp32/structs.h"
+#include "../../inc/esp32/globals.h"
+#include "eppgPower.h"
 
-float getAltitudeM();
-float getBatteryVoltSmoothed();
-float getBatteryPercent(float voltage);
 extern bool armed;
 extern float batteryPercent;
 extern float throttlePWM;
 extern float armAltM;
 extern float watts;
 extern float wattsHoursUsed;
+extern STR_ESC_TELEMETRY_140 telemetryData;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 
 #define LAST_PAGE 1  // starts at 0

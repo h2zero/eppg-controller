@@ -1,7 +1,6 @@
 // Copyright 2020 <Zach Whitehead>
 // OpenPPG
-
-#include "../../lib/crc.c"       // packet error checking
+#include <Arduino.h>
 #ifdef M0_PIO
   #include "../../inc/sp140/m0-config.h"          // device config
 #elif RP_PIO
@@ -11,31 +10,30 @@
 #endif
 
 #include "../../inc/esp32/structs.h"         // data structs
-#include <AceButton.h>           // button clicks
+
 #include <Adafruit_BMP3XX.h>     // barometer
 #include <Adafruit_DRV2605.h>    // haptic controller
-#include <ArduinoJson.h>
 #include <CircularBuffer.h>      // smooth out readings
-#include <eppgBLE.h>             // BLE
+
+#include "ble-handheld.h"        // BLE
+#include "ble-hub.h"
+
 #include <ResponsiveAnalogRead.h>  // smoothing for throttle
-#include "esc.h"
+#include "eppgESC.h"
 #include <SPI.h>
 #ifndef ESP_PLATFORM
-#include <StaticThreadController.h>
-#include <Thread.h>   // run tasks at different intervals
+  #include <StaticThreadController.h>
+  #include <Thread.h>   // run tasks at different intervals
 #endif
 #include <Wire.h>
-#include "display.h"
+#include "eppgDisplay.h"
+#include "eppgStorage.h"
+#include "eppgButtons.h"
+#include "eppgUtils.h"
+#include "eppgBuzzer.h"
 
 #ifdef USE_TINYUSB
-  #ifdef ESP_PLATFORM
-    #if ARDUINO_USB_MODE
-      #error USB OTG Mode must be enabled.
-    #endif
-    #include "USB.h"
-  #else
-    #include "Adafruit_TinyUSB.h"
-  #endif
+  #include "eppgUSB.h"
 #endif
 
 #ifdef M0_PIO
@@ -52,27 +50,15 @@
 
 #include "../../inc/esp32/globals.h"  // device config
 
-using namespace ace_button;
-
 EppgDisplay display;
 Adafruit_DRV2605 vibe;
 Adafruit_BMP3XX bmp;
 EppgEsc esc;  // Creating a servo class with name of esc
 STR_DEVICE_DATA_140_V1 deviceData;
-
-// USB WebUSB object
-#ifdef USE_TINYUSB
-  #ifndef ESP_PLATFORM
-Adafruit_USBD_WebUSB usb_web;
-WEBUSB_URL_DEF(landingPage, 1 /*https*/, "config.openppg.com");
-  #else
-USBCDC usb_web;
-  #endif
-#endif
+STR_ESC_TELEMETRY_140 telemetryData;
 
 ResponsiveAnalogRead pot(THROTTLE_PIN, false);
-AceButton button_top(BUTTON_TOP);
-ButtonConfig* buttonConfig = button_top.getButtonConfig();
+
 #ifdef M0_PIO
   extEEPROM eep(kbits_64, 1, 64);
 #endif
@@ -80,10 +66,7 @@ ButtonConfig* buttonConfig = button_top.getButtonConfig();
 CircularBuffer<float, 50> voltageBuffer;
 CircularBuffer<int, 8> potBuffer;
 
-#ifdef ESP_PLATFORM
-xTimerHandle ledBlinkHandle;
-xTimerHandle checkButtonsHandle;
-#else
+#ifndef ESP_PLATFORM
 Thread ledBlinkThread = Thread();
 Thread displayThread = Thread();
 Thread throttleThread = Thread();
@@ -96,10 +79,11 @@ StaticThreadController<6> threads(&ledBlinkThread, &displayThread, &throttleThre
 #endif
 
 bool armed = false;
+bool cruising = false;
 bool use_hub_v2 = true;
 float armAltM = 0;
 uint32_t armedAtMilis = 0;
-uint32_t cruisedAtMilisMilis = 0;
+unsigned long cruisedAtMilis = 0;
 unsigned int armedSecs = 0;
 unsigned int last_throttle = 0;
 
@@ -109,11 +93,22 @@ EppgBLEServer ble;
 EppgBLEClient ble;
 #endif
 
-#ifdef BLE_LATENCY_TEST
-latency_test_t ble_lat_test;
-latency_test_t ble_lat_last;
-uint32_t disconnect_count;
-#endif
+/* ** TODO - move these ** */
+int prevPotLvl = 0;
+int cruisedPotVal = 0;
+float throttlePWM = 0;
+float batteryPercent = 0;
+float wattsHoursUsed = 0;
+float watts = 0;
+// bmp
+float ambientTempC = 0;
+float altitudeM = 0;
+float aglM = 0;
+
+void initBmp();
+void initVibe();
+void vibrateNotify();
+bool runVibe(unsigned int sequence[], int siz);
 
 #pragma message "Warning: OpenPPG software is in beta"
 
@@ -123,15 +118,7 @@ void setup() {
   esc.begin();
 
 #ifdef USE_TINYUSB
-  #ifdef ESP_PLATFORM
-  USB.webUSB(true);
-  USB.webUSBURL("https://config.openppg.com");
-  USB.begin();
-  #else
-  usb_web.begin();
-  usb_web.setLandingPage(&landingPage);
-  usb_web.setLineStateCallback(line_state_callback);
-  #endif
+  initWebUSB();
 #endif
 
 #ifndef ESP_PLATFORM
@@ -185,6 +172,15 @@ void setup() {
   #endif
 
   #if defined(EPPG_BLE_CLIENT)
+  pinMode(LED_SW, OUTPUT);
+
+  analogReadResolution(12);
+  pot.setAnalogResolution(4096);
+
+  initButtons();
+  EEPROM.begin(512);
+  refreshDeviceData();
+
   setupBleClient();
   display.init();
   //modeSwitch();
@@ -212,7 +208,7 @@ void loop() {
 
   // from WebUSB to both Serial & webUSB
 #if defined(USE_TINYUSB) && !defined(BLE_TEST) // causes delay?
-  if (!armed && usb_web.available()) parse_usb_serial();
+  if (!armed) parse_usb_serial();
 #endif
 
 #ifndef ESP_PLATFORM
@@ -245,13 +241,7 @@ void loop1() {
 }
 #endif
 
-#ifdef ESP_PLATFORM
-void checkButtons(xTimerHandle pxTimer) {
-#else
-void checkButtons() {
-#endif
-  button_top.check();
-}
+
 
 // disarm, remove cruise, alert, save updated stats
 void disarmSystem() {
@@ -277,7 +267,7 @@ void disarmSystem() {
 #endif
 
   #ifdef ESP_PLATFORM
-  xTimerReset(ledBlinkHandle, portMAX_DELAY);
+  startBlinkTimer();
   #else
   ledBlinkThread.enabled = true;
   #endif
@@ -294,45 +284,76 @@ void disarmSystem() {
   delay(1000);  // TODO just disable button thread // dont allow immediate rearming
 }
 
-// The event handler for the the buttons
-void handleButtonEvent(AceButton* /* btn */, uint8_t eventType, uint8_t /* st */) {
-  switch (eventType) {
-  case AceButton::kEventDoubleClicked:
-    if (armed) {
-      disarmSystem();
-    } else if (throttleSafe()) {
-      armSystem();
-    } else {
-      handleArmFail();
-    }
-    break;
-  case AceButton::kEventLongPressed:
-    if (armed) {
-      if (cruising) {
-        removeCruise(true);
-      } else {
-        setCruise();
-      }
-    } else {
-      // show stats screen?
-    }
-    break;
-  case AceButton::kEventLongReleased:
-    break;
-  }
+// Start the bmp388 sensor
+void initBmp() {
+  bmp.begin_I2C();
+  bmp.setOutputDataRate(BMP3_ODR_25_HZ);
+  bmp.setTemperatureOversampling(BMP3_OVERSAMPLING_2X);
+  bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
+  bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_15);
 }
 
-// inital button setup and config
-void initButtons() {
-  pinMode(BUTTON_TOP, INPUT_PULLUP);
+// initialize the vibration motor
+void initVibe() {
+  vibe.begin();
+  vibe.selectLibrary(1);
+  vibe.setMode(DRV2605_MODE_INTTRIG);
+  vibrateNotify();
+}
 
-  buttonConfig->setEventHandler(handleButtonEvent);
-  buttonConfig->setFeature(ButtonConfig::kFeatureDoubleClick);
-  buttonConfig->setFeature(ButtonConfig::kFeatureLongPress);
-  buttonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterDoubleClick);
-  buttonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterLongPress);
-  buttonConfig->setLongPressDelay(2500);
-  buttonConfig->setDoubleClickDelay(600);
+void setLEDs(byte state) {
+  // digitalWrite(LED_2, state);
+  // digitalWrite(LED_3, state);
+  digitalWrite(LED_SW, state);
+}
+
+// toggle LEDs
+#ifdef ESP_PLATFORM
+void blinkLED(xTimerHandle pxTimer) {
+#else
+void blinkLED() {
+#endif
+  byte ledState = !digitalRead(LED_SW);
+  setLEDs(ledState);
+}
+
+bool runVibe(unsigned int sequence[], int siz) {
+  if (!ENABLE_VIB) { return false; }
+
+  for (int thisVibe = 0; thisVibe < siz; thisVibe++) {
+    vibe.setWaveform(thisVibe, sequence[thisVibe]);
+  }
+  vibe.go();
+  return true;
+}
+
+void handleArmFail() {
+  uint16_t arm_fail_melody[] = { 820, 640 };
+  playMelody(arm_fail_melody, 2);
+}
+
+void vibrateNotify() {
+  if (!ENABLE_VIB) { return; }
+
+  vibe.setWaveform(0, 15);  // 1 through 117 (see example sketch)
+  vibe.setWaveform(1, 0);
+  vibe.go();
+}
+
+// throttle easing function based on threshold/performance mode
+int limitedThrottle(int current, int last, int threshold) {
+  if (current - last >= threshold) {  // accelerating too fast. limit
+    int limitedThrottle = last + threshold;
+    // TODO: cleanup global var use
+    prevPotLvl = limitedThrottle;  // save for next time
+    return limitedThrottle;
+  } else if (last - current >= threshold * 2) {  // decelerating too fast. limit
+    int limitedThrottle = last - threshold * 2;  // double the decel vs accel
+    prevPotLvl = limitedThrottle;  // save for next time
+    return limitedThrottle;
+  }
+  prevPotLvl = current;
+  return current;
 }
 
 // read throttle and send to hub
@@ -408,7 +429,7 @@ bool armSystem() {
 #endif
 
 #ifdef ESP_PLATFORM
-  xTimerStop(ledBlinkHandle, portMAX_DELAY);
+  stopBlinkTimer();
 #else
   ledBlinkThread.enabled = false;
 #endif
@@ -478,14 +499,3 @@ void removeCruise(bool alert) {
   }
 }
 
-unsigned long prevPwrMillis = 0;
-
-void trackPower() {
-  unsigned long currentPwrMillis = millis();
-  unsigned long msec_diff = (currentPwrMillis - prevPwrMillis);  // eg 0.30 sec
-  prevPwrMillis = currentPwrMillis;
-
-  if (armed) {
-    wattsHoursUsed += round(watts/60/60*msec_diff)/1000.0;
-  }
-}

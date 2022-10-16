@@ -1,5 +1,19 @@
 #if defined(EPPG_BLE_SERVER)
 
+#include <Arduino.h>
+#include "../../inc/esp32/esp32-config.h"
+#include "../../inc/esp32/globals.h"
+#include "ble-hub.h"
+#include "eppgPower.h"
+#include "eppgESC.h"
+
+#ifdef BLE_LATENCY_TEST
+latency_test_t ble_lat_test;
+#endif
+
+extern EppgBLEServer ble;
+extern EppgEsc esc;
+
 void bleConnected(){Serial.println("Client Connected");}
 void bleDisconnected() {Serial.println("Client Disconnected");}
 void bleThrottleUpdate(int val) {
@@ -60,15 +74,15 @@ void setupBleServer() {
   SerialESC.begin(ESC_BAUD_RATE);
   SerialESC.setTimeout(ESC_TIMEOUT);
 
+  esc.attach(ESC_PIN);
+  esc.writeMicroseconds(ESC_DISARMED_PWM);
+
   ble.setConnectCallback(bleConnected);
   ble.setDisconnectCallback(bleDisconnected);
   ble.setThrottleCallback(bleThrottleUpdate);
   ble.setArmCallback(bleArm);
   ble.setDisarmCallback(bleDisarm);
   ble.begin();
-
-  esc.attach(ESC_PIN);
-  esc.writeMicroseconds(ESC_DISARMED_PWM);
 
   xTaskCreate(trackPowerTask, "trackPower", 5000, NULL, 1, NULL);
   xTaskCreate(handleTelemetryTask, "handleTelemetry", 5000, NULL, 1, NULL);

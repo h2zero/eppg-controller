@@ -1,12 +1,14 @@
 #ifndef ESC_DISABLED
 
 #include <Arduino.h>
-#include "esc.h"
+#include "eppgESC.h"
 #include <CircularBuffer.h>
 #include "../../inc/esp32/structs.h"
 
 extern float watts;
 extern CircularBuffer<float, 50> voltageBuffer;
+extern STR_DEVICE_DATA_140_V1 deviceData;
+extern STR_ESC_TELEMETRY_140 telemetryData;
 
 EppgEsc::EppgEsc()
 : escData{0},

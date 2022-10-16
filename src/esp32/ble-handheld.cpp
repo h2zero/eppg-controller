@@ -1,5 +1,27 @@
 #if defined(EPPG_BLE_CLIENT)
 
+#include <Arduino.h>
+#include "../../inc/esp32/esp32-config.h"
+#include "../../inc/esp32/globals.h"
+#include "ble-handheld.h"
+#include <eppgBLE.h>
+#include "eppgDisplay.h"
+#include "eppgButtons.h"
+
+#ifdef BLE_LATENCY_TEST
+latency_test_t ble_lat_test;
+latency_test_t ble_lat_last;
+uint32_t disconnect_count;
+#endif
+
+static xTimerHandle ledBlinkHandle;
+static xTimerHandle checkButtonsHandle;
+
+extern EppgBLEClient ble;
+extern EppgDisplay display;
+extern bool armed;
+
+
 void bleConnected(){Serial.println("Connected to server");}
 void bleDisconnected() {
   Serial.println("Disconnected from server");
@@ -56,16 +78,15 @@ void handleThrottleTask(void * parameter) {
   vTaskDelete(NULL); // should never reach this
 }
 
+void stopBlinkTimer() {
+  xTimerStop(ledBlinkHandle, portMAX_DELAY);
+}
+
+void startBlinkTimer() {
+  xTimerReset(ledBlinkHandle, portMAX_DELAY);
+}
+
 void setupBleClient() {
-  pinMode(LED_SW, OUTPUT);   // set up the internal LED2 pin
-
-  analogReadResolution(12);
-  pot.setAnalogResolution(4096);
-
-  initButtons();
-  EEPROM.begin(512);
-  refreshDeviceData();
-
   ble.setStatusCallback(bleStatusUpdate);
   ble.setBatteryCallback(bleBatteryUpdate);
   ble.begin();

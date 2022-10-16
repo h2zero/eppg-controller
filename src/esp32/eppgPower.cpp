@@ -1,5 +1,16 @@
 // Copyright 2021 <Zach Whitehead>
 // OpenPPG
+#include <Arduino.h>
+#include <CircularBuffer.h>
+#include "../../inc/esp32/globals.h"
+#include "eppgPower.h"
+#include "eppgUtils.h"
+
+static unsigned long prevPwrMillis = 0;
+extern float wattsHoursUsed;
+extern float watts;
+extern bool armed;
+extern CircularBuffer<float, 50> voltageBuffer;
 
 // simple set of data points from load testing
 // maps voltage to battery percentage
@@ -36,4 +47,27 @@ float getBatteryPercent(float voltage) {
 uint8_t battery_sigmoidal(float voltage, uint16_t minVoltage, uint16_t maxVoltage) {
   uint8_t result = 105 - (105 / (1 + pow(1.724 * (voltage - minVoltage)/(maxVoltage - minVoltage), 5.5)));
   return result >= 100 ? 100 : result;
+}
+
+void trackPower() {
+  unsigned long currentPwrMillis = millis();
+  unsigned long msec_diff = (currentPwrMillis - prevPwrMillis);  // eg 0.30 sec
+  prevPwrMillis = currentPwrMillis;
+
+  if (armed) {
+    wattsHoursUsed += round(watts/60/60*msec_diff)/1000.0;
+  }
+}
+
+// ring buffer for voltage readings
+float getBatteryVoltSmoothed() {
+  float avg = 0.0;
+
+  if (voltageBuffer.isEmpty()) { return avg; }
+
+  using index_t = decltype(voltageBuffer)::index_t;
+  for (index_t i = 0; i < voltageBuffer.size(); i++) {
+    avg += voltageBuffer[i] / voltageBuffer.size();
+  }
+  return avg;
 }

@@ -1,8 +1,7 @@
-#ifndef EPPG_DISPLAY_H_
-#define EPPG_DISPLAY_H_
+#ifndef INC_EPPG_DISPLAY_H_
+#define INC_EPPG_DISPLAY_H_
 
 #ifndef DISPLAY_DISABLED
-#error
 #include <Adafruit_ST7735.h>
 
 class EppgDisplay {
@@ -70,4 +69,4 @@ public:
 };
 
 #endif // DISPLAY_DISABLED
-#endif // EPPG_DISPLAY_H_
+#endif // INC_EPPG_DISPLAY_H_

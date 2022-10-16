@@ -36,6 +36,4 @@ typedef struct {
 }STR_NOTE;
 #pragma pack(pop)
 
-static STR_ESC_TELEMETRY_140 telemetryData;
-
 #endif  // INC_SP140_STRUCTS_H_
