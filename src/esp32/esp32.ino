@@ -18,7 +18,7 @@
 #include <CircularBuffer.h>      // smooth out readings
 #include <eppgBLE.h>             // BLE
 #include <ResponsiveAnalogRead.h>  // smoothing for throttle
-#include <Servo.h>               // to control ESCs
+#include "esc.h"
 #include <SPI.h>
 #ifndef ESP_PLATFORM
 #include <StaticThreadController.h>
@@ -57,7 +57,7 @@ using namespace ace_button;
 EppgDisplay display;
 Adafruit_DRV2605 vibe;
 Adafruit_BMP3XX bmp;
-Servo esc;  // Creating a servo class with name of esc
+EppgEsc esc;  // Creating a servo class with name of esc
 STR_DEVICE_DATA_140_V1 deviceData;
 
 // USB WebUSB object
@@ -120,6 +120,7 @@ uint32_t disconnect_count;
 // the setup function runs once when you press reset or power the board
 void setup() {
   Serial.begin(115200);
+  esc.begin();
 
 #ifdef USE_TINYUSB
   #ifdef ESP_PLATFORM
@@ -134,8 +135,6 @@ void setup() {
 #endif
 
 #ifndef ESP_PLATFORM
-  SerialESC.begin(ESC_BAUD_RATE);
-  SerialESC.setTimeout(ESC_TIMEOUT);
 
   //Serial.print(F("Booting up (USB) V"));
   //Serial.print(VERSION_MAJOR + "." + VERSION_MINOR);

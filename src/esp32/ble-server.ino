@@ -28,7 +28,7 @@ void bleDisarm() {
 
 void handleTelemetryTask(void * parameter) {
   for (;;) {
-    handleTelemetry();
+    esc.handleTelemetry();
 #ifndef BLE_TEST
     bmp.performReading();
     ble.setTemp(bmp.temperature);
