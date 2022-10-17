@@ -12,12 +12,14 @@
 
 #include "eppgStorage.h"
 #include "eppgBuzzer.h"
+#include "eppgThrottle.h"
 
 using namespace ace_button;
 
 extern bool armed;
 extern bool cruising;
 extern STR_DEVICE_DATA_140_V1 deviceData;
+extern EppgThrottle throttle;
 
 AceButton button_top(BUTTON_TOP);
 ButtonConfig* buttonConfig = button_top.getButtonConfig();
@@ -36,7 +38,7 @@ void handleButtonEvent(AceButton* /* btn */, uint8_t eventType, uint8_t /* st */
   case AceButton::kEventDoubleClicked:
     if (armed) {
       disarmSystem();
-    } else if (throttleSafe()) {
+    } else if (throttle.safe()) {
       armSystem();
     } else {
       handleArmFail();
@@ -44,7 +46,7 @@ void handleButtonEvent(AceButton* /* btn */, uint8_t eventType, uint8_t /* st */
     break;
   case AceButton::kEventLongPressed:
     if (armed) {
-      if (cruising) {
+      if (throttle.getCruising()) {
         removeCruise(true);
       } else {
         setCruise();

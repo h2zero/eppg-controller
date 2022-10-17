@@ -15,12 +15,13 @@
 #include "../../inc/esp32/structs.h"
 #include "../../inc/esp32/globals.h"
 #include "eppgPower.h"
+#include "eppgThrottle.h"
 
 extern bool armed;
-extern float throttlePWM;
 extern float armAltM;
 extern STR_ESC_TELEMETRY_140 telemetryData;
 extern STR_DEVICE_DATA_140_V1 deviceData;
+extern EppgThrottle throttle;
 
 #define LAST_PAGE 1  // starts at 0
 #define BLACK                 ST77XX_BLACK
@@ -312,7 +313,7 @@ void EppgDisplay::handleFlightTime() {
     throttled = false;
   } else { // armed
     // start the timer when armed and throttle is above the threshold
-    if (throttlePWM > 1250 && throttledFlag) {
+    if (throttle.getPWM() > 1250 && throttledFlag) {
       throttledAtMillis = millis();
       throttledFlag = false;
       throttled = true;

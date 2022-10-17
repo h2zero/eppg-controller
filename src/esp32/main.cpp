@@ -11,6 +11,11 @@
 
 #include "../../inc/esp32/structs.h"         // data structs
 
+#ifndef ESP_PLATFORM
+  #include <StaticThreadController.h>
+  #include <Thread.h>   // run tasks at different intervals
+#endif
+
 #include <Adafruit_BMP3XX.h>     // barometer
 #include <Adafruit_DRV2605.h>    // haptic controller
 #include <CircularBuffer.h>      // smooth out readings
@@ -18,19 +23,13 @@
 #include "ble-handheld.h"        // BLE
 #include "ble-hub.h"
 
-#include <ResponsiveAnalogRead.h>  // smoothing for throttle
 #include "eppgESC.h"
-#include <SPI.h>
-#ifndef ESP_PLATFORM
-  #include <StaticThreadController.h>
-  #include <Thread.h>   // run tasks at different intervals
-#endif
-#include <Wire.h>
 #include "eppgDisplay.h"
 #include "eppgStorage.h"
 #include "eppgButtons.h"
 #include "eppgUtils.h"
 #include "eppgBuzzer.h"
+#include "eppgThrottle.h"
 
 #ifdef USE_TINYUSB
   #include "eppgUSB.h"
@@ -69,9 +68,8 @@ EppgBLEServer ble;
 EppgBLEClient ble;
 #endif
 
+EppgThrottle throttle;
 CircularBuffer<float, 50> voltageBuffer;
-CircularBuffer<int, 8> potBuffer;
-
 EppgDisplay display;
 Adafruit_DRV2605 vibe;
 Adafruit_BMP3XX bmp;
@@ -79,23 +77,12 @@ EppgEsc esc;  // Creating a servo class with name of esc
 STR_DEVICE_DATA_140_V1 deviceData;
 STR_ESC_TELEMETRY_140 telemetryData;
 
-ResponsiveAnalogRead pot(THROTTLE_PIN, false);
-
 #ifdef M0_PIO
   extEEPROM eep(kbits_64, 1, 64);
 #endif
 
 bool armed = false;
-bool cruising = false;
 float armAltM = 0;
-float throttlePWM = 0;
-
-// local variables
-static uint32_t armedAtMilis = 0;
-static unsigned long cruisedAtMilis = 0;
-static unsigned int armedSecs = 0;
-static int prevPotLvl = 0;
-static int cruisedPotVal = 0;
 
 // bmp
 static float ambientTempC = 0;
@@ -173,7 +160,6 @@ void setup() {
   pinMode(LED_SW, OUTPUT);
 
   analogReadResolution(12);
-  pot.setAnalogResolution(4096);
 
   initButtons();
   EEPROM.begin(512);
@@ -239,11 +225,9 @@ void loop1() {
 }
 #endif
 
-
-
 // disarm, remove cruise, alert, save updated stats
 void disarmSystem() {
-  throttlePWM = ESC_DISARMED_PWM;
+  throttle.setPWM(ESC_DISARMED_PWM);
 #if !defined(EPPG_BLE_CLIENT)
   armed = false;
   esc.writeMicroseconds(ESC_DISARMED_PWM);
@@ -254,9 +238,7 @@ void disarmSystem() {
   //Serial.println(F("disarmed"));
 
 #ifndef BLE_TEST
-  // reset smoothing
-  potBuffer.clear();
-  prevPotLvl = 0;
+  throttle.setArmed(false);
 
   u_int16_t disarm_melody[] = { 2093, 1976, 880 };
   unsigned int disarm_vibes[] = { 100, 0 };
@@ -276,7 +258,7 @@ void disarmSystem() {
   display.displayDisarm();
   // update armed_time
   refreshDeviceData();
-  deviceData.armed_time += round(armedSecs / 60);  // convert to mins
+  deviceData.armed_time += round(throttle.getArmedSeconds() / 60);  // convert to mins
   writeDeviceData();
 #endif
   delay(1000);  // TODO just disable button thread // dont allow immediate rearming
@@ -338,81 +320,6 @@ void vibrateNotify() {
   vibe.go();
 }
 
-// throttle easing function based on threshold/performance mode
-int limitedThrottle(int current, int last, int threshold) {
-  if (current - last >= threshold) {  // accelerating too fast. limit
-    int limitedThrottle = last + threshold;
-    // TODO: cleanup global var use
-    prevPotLvl = limitedThrottle;  // save for next time
-    return limitedThrottle;
-  } else if (last - current >= threshold * 2) {  // decelerating too fast. limit
-    int limitedThrottle = last - threshold * 2;  // double the decel vs accel
-    prevPotLvl = limitedThrottle;  // save for next time
-    return limitedThrottle;
-  }
-  prevPotLvl = current;
-  return current;
-}
-
-// read throttle and send to hub
-// read throttle
-void handleThrottle() {
-  if (!armed) return;  // safe
-
-  armedSecs = (millis() - armedAtMilis) / 1000;  // update time while armed
-
-  static int maxPWM = ESC_MAX_PWM;
-#ifdef BLE_TEST
-  int potRaw = random(0, 4095);
-#else
-  pot.update();
-  int potRaw = pot.getValue();
-#endif
-
-  if (cruising) {
-    unsigned long cruisingSecs = (millis() - cruisedAtMilis) / 1000;
-
-    if (cruisingSecs >= CRUISE_GRACE && potRaw > POT_SAFE_LEVEL) {
-      removeCruise(true);  // deactivate cruise
-    } else {
-      throttlePWM = mapd(cruisedPotVal, 0, 4095, ESC_MIN_PWM, maxPWM);
-    }
-  } else {
-    // no need to save & smooth throttle etc when in cruise mode (& pot == 0)
-    potBuffer.push(potRaw);
-
-    int potLvl = 0;
-    for (decltype(potBuffer)::index_t i = 0; i < potBuffer.size(); i++) {
-      potLvl += potBuffer[i] / potBuffer.size();  // avg
-    }
-
-  // runs ~40x sec
-  // 1000 diff in pwm from 0
-  // 1000/6/40
-    if (deviceData.performance_mode == 0) {  // chill mode
-      potLvl = limitedThrottle(potLvl, prevPotLvl, 50);
-      maxPWM = 1850;  // 85% interpolated from 1030 to 1990
-    } else {
-      potLvl = limitedThrottle(potLvl, prevPotLvl, 120);
-      maxPWM = ESC_MAX_PWM;
-    }
-    // mapping val to min and max pwm
-    throttlePWM = mapd(potLvl, 0, 4095, ESC_MIN_PWM, maxPWM);
-  }
-
-#if defined(EPPG_BLE_CLIENT)
-  #ifdef BLE_TEST
-  Serial.printf("Set throttle: %d, %s\n", (int)throttlePWM,
-                ble.setThrottle(throttlePWM) ? "success" : "failed");
-  #else
-  // TODO: consider not sending the data if unchanged.
-  ble.setThrottle(throttlePWM);
-  #endif
-#else
-  esc.writeMicroseconds(throttlePWM);  // using val as the signal to esc
-#endif
-}
-
 // get the PPG ready to fly
 bool armSystem() {
   uint16_t arm_melody[] = { 1760, 1976, 2093 };
@@ -433,7 +340,7 @@ bool armSystem() {
 #endif
 
 #ifndef BLE_TEST
-  armedAtMilis = millis();
+  throttle.setArmed(true);
   armAltM = getAltitudeM();
 
   setLEDs(HIGH);
@@ -442,16 +349,6 @@ bool armSystem() {
   display.displayArm();
 #endif
   return true;
-}
-
-
-// Returns true if the throttle/pot is below the safe threshold
-bool throttleSafe() {
-  pot.update();
-  if (pot.getValue() < POT_SAFE_LEVEL) {
-    return true;
-  }
-  return false;
 }
 
 // convert barometer data to altitude in meters
@@ -472,20 +369,18 @@ float getAltitudeM() {
 void setCruise() {
   // IDEA: fill a "cruise indicator" as long press activate happens
   // or gradually change color from blue to yellow with time
-  if (!throttleSafe()) {  // using pot/throttle
-    cruisedPotVal = pot.getValue();  // save current throttle val
-    cruising = true;
+  if (!throttle.safe()) {  // using pot/throttle
+    throttle.setCruise(true);
     vibrateNotify();
 
     uint16_t notify_melody[] = { 900, 900 };
     playMelody(notify_melody, 2);
     display.displaySetCruise();
-    cruisedAtMilis = millis();  // start timer
   }
 }
 
 void removeCruise(bool alert) {
-  cruising = false;
+  throttle.setCruise(false);
   display.displayRemoveCruise();
   if (alert) {
     vibrateNotify();

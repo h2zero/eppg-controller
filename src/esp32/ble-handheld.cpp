@@ -7,6 +7,7 @@
 #include <eppgBLE.h>
 #include "eppgDisplay.h"
 #include "eppgButtons.h"
+#include "eppgThrottle.h"
 
 #ifdef BLE_LATENCY_TEST
 latency_test_t ble_lat_test;
@@ -19,6 +20,7 @@ static xTimerHandle checkButtonsHandle;
 
 extern EppgBLEClient ble;
 extern EppgDisplay display;
+extern EppgThrottle throttle;
 extern bool armed;
 
 
@@ -67,7 +69,7 @@ void updateDisplayTask(void * parameter) {
 
 void handleThrottleTask(void * parameter) {
   for (;;) {
-    handleThrottle();
+    throttle.handleThrottle();
 #ifdef BLE_TEST
     delay(1000);
 #else
