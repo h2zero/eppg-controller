@@ -17,11 +17,8 @@
 #include "eppgPower.h"
 
 extern bool armed;
-extern float batteryPercent;
 extern float throttlePWM;
 extern float armAltM;
-extern float watts;
-extern float wattsHoursUsed;
 extern STR_ESC_TELEMETRY_140 telemetryData;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 
@@ -256,7 +253,7 @@ void EppgDisplay::update() {
 
   display.setTextColor(BLACK);
   float avgVoltage = getBatteryVoltSmoothed();
-  batteryPercent = getBatteryPercent(avgVoltage);  // multi-point line
+  float batteryPercent = getBatteryPercent(avgVoltage);  // multi-point line
   // change battery color based on charge
   int batt_width = map((int)batteryPercent, 0, 100, 0, 108);
   display.fillRect(0, 0, batt_width, 36, batt2color(batteryPercent));
@@ -357,13 +354,13 @@ void EppgDisplay::displayPage0() {
   dispValue(telemetryData.amps, prevAmps, 3, 0, 108, 71, 2, BLACK, DEFAULT_BG_COLOR);
   display.print("A");
 
-  float kWatts = watts / 1000.0;
+  float kWatts = getWatts() / 1000.0;
   kWatts = constrain(kWatts, 0, 50);
 
   dispValue(kWatts, prevKilowatts, 4, 1, 10, 42, 2, BLACK, DEFAULT_BG_COLOR);
   display.print("kW");
 
-  float kwh = wattsHoursUsed / 1000;
+  float kwh = getWattHoursUsed() / 1000;
   dispValue(kwh, prevKwh, 4, 1, 10, 71, 2, BLACK, DEFAULT_BG_COLOR);
   display.print("kWh");
 
@@ -386,7 +383,7 @@ void EppgDisplay::displayPage1() {
   dispValue(telemetryData.amps, prevAmps, 3, 0, 108, 71, 2, BLACK, DEFAULT_BG_COLOR);
   display.print("A");
 
-  float kwh = wattsHoursUsed / 1000;
+  float kwh = getWattHoursUsed() / 1000;
   dispValue(kwh, prevKilowatts, 4, 1, 10, 71, 2, BLACK, DEFAULT_BG_COLOR);
   display.print("kWh");
 

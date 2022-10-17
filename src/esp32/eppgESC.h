@@ -16,12 +16,12 @@ class EppgEsc : public Servo {
   byte escData[ESC_DATA_SIZE];
   unsigned long transmitted;
   unsigned long failed;
-  uint16_t _volts;
-  uint16_t _temperatureC;
-  int16_t _amps;
-  uint32_t _eRPM;
-  uint16_t _inPWM;
-  uint16_t _outPWM;
+  uint16_t      _volts;
+  uint16_t      _temperatureC;
+  int16_t       _amps;
+  uint32_t      _eRPM;
+  uint16_t      _inPWM;
+  uint16_t      _outPWM;
 
   void serialRead();
   bool enforceFletcher16();

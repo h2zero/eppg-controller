@@ -4,5 +4,8 @@
 void   trackPower();
 float  getBatteryVoltSmoothed();
 float  getBatteryPercent(float voltage);
+float  getWattHoursUsed();
+void   setWatts(float val);
+float  getWatts();
 
 #endif

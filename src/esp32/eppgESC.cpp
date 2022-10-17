@@ -4,8 +4,8 @@
 #include "eppgESC.h"
 #include <CircularBuffer.h>
 #include "../../inc/esp32/structs.h"
+#include "eppgPower.h"
 
-extern float watts;
 extern CircularBuffer<float, 50> voltageBuffer;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern STR_ESC_TELEMETRY_140 telemetryData;
@@ -119,7 +119,7 @@ void EppgEsc::parseData() {
   // Serial.print(F("Amps: "));
   // Serial.println(amps);
 
-  watts = telemetryData.amps * telemetryData.volts;
+  setWatts(telemetryData.amps * telemetryData.volts);
 
   // 7 and 6 are reserved bytes
 

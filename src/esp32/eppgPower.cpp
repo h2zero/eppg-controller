@@ -6,11 +6,12 @@
 #include "eppgPower.h"
 #include "eppgUtils.h"
 
-static unsigned long prevPwrMillis = 0;
-extern float wattsHoursUsed;
-extern float watts;
 extern bool armed;
 extern CircularBuffer<float, 50> voltageBuffer;
+
+static unsigned long prevPwrMillis = 0;
+static float wattsHoursUsed = 0;
+static float watts = 0;
 
 // simple set of data points from load testing
 // maps voltage to battery percentage
@@ -70,4 +71,16 @@ float getBatteryVoltSmoothed() {
     avg += voltageBuffer[i] / voltageBuffer.size();
   }
   return avg;
+}
+
+float getWattHoursUsed() {
+  return wattsHoursUsed;
+}
+
+void setWatts(float val) {
+  watts = val;
+}
+
+float getWatts() {
+  return watts;
 }

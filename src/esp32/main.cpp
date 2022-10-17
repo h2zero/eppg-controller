@@ -50,6 +50,28 @@
 
 #include "../../inc/esp32/globals.h"  // device config
 
+#ifndef ESP_PLATFORM
+Thread ledBlinkThread = Thread();
+Thread displayThread = Thread();
+Thread throttleThread = Thread();
+Thread buttonThread = Thread();
+Thread telemetryThread = Thread();
+Thread counterThread = Thread();
+
+StaticThreadController<6> threads(&ledBlinkThread, &displayThread, &throttleThread,
+                                  &buttonThread, &telemetryThread, &counterThread);
+#endif
+
+// globally available
+#ifdef EPPG_BLE_SERVER
+EppgBLEServer ble;
+#elif EPPG_BLE_CLIENT
+EppgBLEClient ble;
+#endif
+
+CircularBuffer<float, 50> voltageBuffer;
+CircularBuffer<int, 8> potBuffer;
+
 EppgDisplay display;
 Adafruit_DRV2605 vibe;
 Adafruit_BMP3XX bmp;
@@ -63,48 +85,24 @@ ResponsiveAnalogRead pot(THROTTLE_PIN, false);
   extEEPROM eep(kbits_64, 1, 64);
 #endif
 
-CircularBuffer<float, 50> voltageBuffer;
-CircularBuffer<int, 8> potBuffer;
-
-#ifndef ESP_PLATFORM
-Thread ledBlinkThread = Thread();
-Thread displayThread = Thread();
-Thread throttleThread = Thread();
-Thread buttonThread = Thread();
-Thread telemetryThread = Thread();
-Thread counterThread = Thread();
-
-StaticThreadController<6> threads(&ledBlinkThread, &displayThread, &throttleThread,
-                                  &buttonThread, &telemetryThread, &counterThread);
-#endif
-
 bool armed = false;
 bool cruising = false;
-bool use_hub_v2 = true;
 float armAltM = 0;
-uint32_t armedAtMilis = 0;
-unsigned long cruisedAtMilis = 0;
-unsigned int armedSecs = 0;
-unsigned int last_throttle = 0;
-
-#ifdef EPPG_BLE_SERVER
-EppgBLEServer ble;
-#elif EPPG_BLE_CLIENT
-EppgBLEClient ble;
-#endif
-
-/* ** TODO - move these ** */
-int prevPotLvl = 0;
-int cruisedPotVal = 0;
 float throttlePWM = 0;
-float batteryPercent = 0;
-float wattsHoursUsed = 0;
-float watts = 0;
-// bmp
-float ambientTempC = 0;
-float altitudeM = 0;
-float aglM = 0;
 
+// local variables
+static uint32_t armedAtMilis = 0;
+static unsigned long cruisedAtMilis = 0;
+static unsigned int armedSecs = 0;
+static int prevPotLvl = 0;
+static int cruisedPotVal = 0;
+
+// bmp
+static float ambientTempC = 0;
+static float altitudeM = 0;
+static float aglM = 0;
+
+// local functions
 void initBmp();
 void initVibe();
 void vibrateNotify();
