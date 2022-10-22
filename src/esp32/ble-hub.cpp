@@ -98,7 +98,7 @@ void bleServerLoop() {
   #else
     ble.setStatus(random(0x00,0xFFFF));
   #endif
-  delay(1000);
+  delay(500);
 #endif
 }
 

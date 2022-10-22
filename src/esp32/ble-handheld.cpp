@@ -71,7 +71,7 @@ void handleThrottleTask(void * parameter) {
   for (;;) {
     throttle.handleThrottle();
 #ifdef BLE_TEST
-    delay(1000);
+    delay(100);
 #else
     delay(22); // Update throttle every 22ms
 #endif
