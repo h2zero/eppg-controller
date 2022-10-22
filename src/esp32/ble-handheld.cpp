@@ -1,4 +1,4 @@
-#if defined(EPPG_BLE_CLIENT)
+#if defined(EPPG_BLE_HANDHELD)
 
 #include <Arduino.h>
 #include "../../inc/esp32/esp32-config.h"
@@ -117,4 +117,4 @@ void bleClientLoop() {
 #endif
 }
 
-#endif // EPPG_BLE_CLIENT
+#endif // EPPG_BLE_HANDHELD

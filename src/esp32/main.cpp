@@ -11,11 +11,11 @@
 
 #include "../../inc/esp32/structs.h"         // data structs
 
-#ifndef EPPG_BLE_CLIENT
+#ifndef EPPG_BLE_HANDHELD
 #include <Adafruit_BMP3XX.h>     // barometer
 #endif
 
-#ifndef EPPG_BLE_SERVER
+#ifndef EPPG_BLE_HUB
 #include <Adafruit_DRV2605.h>    // haptic controller
 #endif
 #include <CircularBuffer.h>      // smooth out readings
@@ -23,7 +23,7 @@
 #include "ble-handheld.h"        // BLE
 #include "ble-hub.h"
 
-#ifndef EPPG_BLE_SERVER
+#ifndef EPPG_BLE_HUB
 #include <ResponsiveAnalogRead.h>  // smoothing for throttle
 #endif
 
@@ -66,9 +66,9 @@ StaticThreadController<6> threads(&ledBlinkThread, &displayThread, &throttleThre
 #endif
 
 // globally available
-#ifdef EPPG_BLE_SERVER
+#ifdef EPPG_BLE_HUB
 EppgBLEServer ble;
-#elif EPPG_BLE_CLIENT
+#elif EPPG_BLE_HANDHELD
 EppgBLEClient ble;
 #endif
 
@@ -156,11 +156,11 @@ void setup() {
   modeSwitch();
 
 #else // ESP_PLATFORM
-  #if defined(EPPG_BLE_SERVER)
+  #if defined(EPPG_BLE_HUB)
   setupBleServer();
   #endif
 
-  #if defined(EPPG_BLE_CLIENT)
+  #if defined(EPPG_BLE_HANDHELD)
   pinMode(LED_SW, OUTPUT);
 
   analogReadResolution(12);
@@ -202,11 +202,11 @@ void loop() {
 #ifndef ESP_PLATFORM
   threads.run();
 #else
-  #ifdef EPPG_BLE_SERVER
+  #ifdef EPPG_BLE_HUB
   bleServerLoop();
   #endif
 
-  #ifdef EPPG_BLE_CLIENT
+  #ifdef EPPG_BLE_HANDHELD
   bleClientLoop();
   #endif
 #endif // ESP_PLATFORM
@@ -231,11 +231,11 @@ void loop1() {
 
 // disarm, remove cruise, alert, save updated stats
 void disarmSystem() {
-  throttle.setPWM(ESC_DISARMED_PWM);
-#if !defined(EPPG_BLE_CLIENT)
+#if !defined(EPPG_BLE_HANDHELD)
   armed = false;
   esc.writeMicroseconds(ESC_DISARMED_PWM);
 #else
+  throttle.setPWM(ESC_DISARMED_PWM);
   armed = !ble.disarm();
   Serial.printf("Disarm: %s\n", !armed ? "success" : "failed");
 #endif
@@ -329,7 +329,7 @@ bool armSystem() {
   uint16_t arm_melody[] = { 1760, 1976, 2093 };
   unsigned int arm_vibes[] = { 70, 33, 0 };
 
-#if !defined(EPPG_BLE_CLIENT)
+#if !defined(EPPG_BLE_HANDHELD)
   armed = true;
   esc.writeMicroseconds(ESC_DISARMED_PWM);  // initialize the signal to low
 #else
@@ -357,7 +357,7 @@ bool armSystem() {
 
 // convert barometer data to altitude in meters
 float getAltitudeM() {
-#ifdef EPPG_BLE_CLIENT
+#ifdef EPPG_BLE_HANDHELD
   ambientTempC = ble.getTemp();
   float atmospheric = ble.getBmp() / 100.0F;
   float altitudeM = 44330.0 * (1.0 - pow(atmospheric / deviceData.sea_pressure, 0.1903));

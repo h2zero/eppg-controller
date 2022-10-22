@@ -1,4 +1,4 @@
-#if defined(EPPG_BLE_SERVER)
+#if defined(EPPG_BLE_HUB)
 
 #include <Arduino.h>
 #include "../../inc/esp32/esp32-config.h"
@@ -102,4 +102,4 @@ void bleServerLoop() {
 #endif
 }
 
-#endif // EPPG_BLE_SERVER
+#endif // EPPG_BLE_HUB
