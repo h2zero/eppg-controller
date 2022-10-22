@@ -113,7 +113,7 @@ void bleClientLoop() {
     disarmSystem();
   }
   Serial.printf("Temp: %f, pressure %f\n", ble.getTemp(), ble.getBmp());
-  delay(1000);
+  delay(500);
 #endif
 }
 

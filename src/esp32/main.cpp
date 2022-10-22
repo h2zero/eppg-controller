@@ -11,17 +11,21 @@
 
 #include "../../inc/esp32/structs.h"         // data structs
 
-#ifndef ESP_PLATFORM
-  #include <StaticThreadController.h>
-  #include <Thread.h>   // run tasks at different intervals
+#ifndef EPPG_BLE_CLIENT
+#include <Adafruit_BMP3XX.h>     // barometer
 #endif
 
-#include <Adafruit_BMP3XX.h>     // barometer
+#ifndef EPPG_BLE_SERVER
 #include <Adafruit_DRV2605.h>    // haptic controller
+#endif
 #include <CircularBuffer.h>      // smooth out readings
 
 #include "ble-handheld.h"        // BLE
 #include "ble-hub.h"
+
+#ifndef EPPG_BLE_SERVER
+#include <ResponsiveAnalogRead.h>  // smoothing for throttle
+#endif
 
 #include "eppgESC.h"
 #include "eppgDisplay.h"
