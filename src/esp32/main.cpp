@@ -7,25 +7,22 @@
   #include "../../inc/sp140/rp2040-config.h"         // device config
 #elif ESP_PLATFORM
   #include "../../inc/esp32/esp32-config.h"
+  #include "../../inc/esp32/structs.h"         // data structs
 #endif
 
-#include "../../inc/esp32/structs.h"         // data structs
-
 #ifndef EPPG_BLE_HANDHELD
-#include <Adafruit_BMP3XX.h>     // barometer
+  #include <Adafruit_BMP3XX.h>     // barometer
 #endif
 
 #ifndef EPPG_BLE_HUB
-#include <Adafruit_DRV2605.h>    // haptic controller
+  #include <Adafruit_DRV2605.h>    // haptic controller
+  #include <ResponsiveAnalogRead.h>  // smoothing for throttle
 #endif
+
 #include <CircularBuffer.h>      // smooth out readings
 
 #include "ble-handheld.h"        // BLE
 #include "ble-hub.h"
-
-#ifndef EPPG_BLE_HUB
-#include <ResponsiveAnalogRead.h>  // smoothing for throttle
-#endif
 
 #include "eppgESC.h"
 #include "eppgDisplay.h"
