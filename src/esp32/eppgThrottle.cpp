@@ -1,3 +1,5 @@
+#ifndef EPPG_BLE_HUB
+
 #include <Arduino.h>
 
 #ifdef M0_PIO
@@ -138,3 +140,5 @@ void EppgThrottle::setArmed(bool enable) {
     prevPotLvl = 0;
   }
 }
+
+#endif // EPPG_BLE_HUB

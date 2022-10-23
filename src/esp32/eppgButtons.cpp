@@ -1,3 +1,5 @@
+#ifndef EPPG_BLE_HUB
+
 #include <Arduino.h>
 #ifdef M0_PIO
   #include "../../inc/sp140/m0-config.h"          // device config
@@ -87,3 +89,5 @@ void initButtons() {
   buttonConfig->setLongPressDelay(2500);
   buttonConfig->setDoubleClickDelay(600);
 }
+
+#endif // EPPG_BLE_HUB

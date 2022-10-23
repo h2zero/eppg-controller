@@ -1,3 +1,5 @@
+#ifndef EPPG_BLE_HUB
+
 #ifndef INC_EPPG_THROTTLE_H_
 #define INC_EPPG_THROTTLE_H_
 
@@ -29,4 +31,5 @@ public:
   bool  getCruising() { return cruising; }
 };
 
-#endif
+#endif // INC_EPPG_THROTTLE_H_
+#endif // EPPG_BLE_HUB

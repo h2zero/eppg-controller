@@ -69,11 +69,17 @@ EppgBLEServer ble;
 EppgBLEClient ble;
 #endif
 
+#ifndef EPPG_BLE_HUB
 EppgThrottle throttle;
-CircularBuffer<float, 50> voltageBuffer;
-EppgDisplay display;
 Adafruit_DRV2605 vibe;
+EppgDisplay display;
+#endif
+
+#ifndef EPPG_BLE_HANDHELD
 Adafruit_BMP3XX bmp;
+#endif
+
+CircularBuffer<float, 50> voltageBuffer;
 EppgEsc esc;  // Creating a servo class with name of esc
 STR_DEVICE_DATA_140_V1 deviceData;
 STR_ESC_TELEMETRY_140 telemetryData;
@@ -265,6 +271,7 @@ void disarmSystem() {
   delay(1000);  // TODO just disable button thread // dont allow immediate rearming
 }
 
+#ifndef EPPG_BLE_HANDHELD
 // Start the bmp388 sensor
 void initBmp() {
   bmp.begin_I2C();
@@ -273,14 +280,7 @@ void initBmp() {
   bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
   bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_15);
 }
-
-// initialize the vibration motor
-void initVibe() {
-  vibe.begin();
-  vibe.selectLibrary(1);
-  vibe.setMode(DRV2605_MODE_INTTRIG);
-  vibrateNotify();
-}
+#endif
 
 void setLEDs(byte state) {
   // digitalWrite(LED_2, state);
@@ -298,6 +298,20 @@ void blinkLED() {
   setLEDs(ledState);
 }
 
+void handleArmFail() {
+  uint16_t arm_fail_melody[] = { 820, 640 };
+  playMelody(arm_fail_melody, 2);
+}
+
+#ifndef EPPG_BLE_HUB
+// initialize the vibration motor
+void initVibe() {
+  vibe.begin();
+  vibe.selectLibrary(1);
+  vibe.setMode(DRV2605_MODE_INTTRIG);
+  vibrateNotify();
+}
+
 bool runVibe(unsigned int sequence[], int siz) {
   if (!ENABLE_VIB) { return false; }
 
@@ -308,11 +322,6 @@ bool runVibe(unsigned int sequence[], int siz) {
   return true;
 }
 
-void handleArmFail() {
-  uint16_t arm_fail_melody[] = { 820, 640 };
-  playMelody(arm_fail_melody, 2);
-}
-
 void vibrateNotify() {
   if (!ENABLE_VIB) { return; }
 
@@ -320,6 +329,7 @@ void vibrateNotify() {
   vibe.setWaveform(1, 0);
   vibe.go();
 }
+#endif
 
 // get the PPG ready to fly
 bool armSystem() {
@@ -367,6 +377,7 @@ float getAltitudeM() {
   return altitudeM;
 }
 
+#ifndef EPPG_BLE_HUB
 void setCruise() {
   // IDEA: fill a "cruise indicator" as long press activate happens
   // or gradually change color from blue to yellow with time
@@ -392,4 +403,4 @@ void removeCruise(bool alert) {
     }
   }
 }
-
+#endif
