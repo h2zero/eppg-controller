@@ -1,4 +1,4 @@
-#ifndef ESC_DISABLED
+#ifndef ESC_TELEM_DISABLED
 
 #include <Arduino.h>
 #include "eppgESC.h"
@@ -159,4 +159,4 @@ void EppgEsc::parseData() {
   // Serial.println(checksum);
 }
 
-#endif // ESC_DISABLED
+#endif // ESC_TELEM_DISABLED

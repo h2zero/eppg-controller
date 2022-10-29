@@ -1,7 +1,7 @@
 #ifndef INC_EPPG_ESC_H_
 #define INC_EPPG_ESC_H_
 
-#ifndef ESC_DISABLED
+#ifndef ESC_TELEM_DISABLED
 
 #ifdef M0_PIO
   #include "../../inc/sp140/m0-config.h"          // device config
@@ -44,5 +44,5 @@ public:
   void writeMicroseconds(int pulseUs) {}
 };
 
-#endif // ESC_DISABLED
+#endif // ESC_TELEM_DISABLED
 #endif // INC_EPPG_ESC_H_
