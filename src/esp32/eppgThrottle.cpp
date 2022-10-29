@@ -14,7 +14,7 @@
 #include "eppgThrottle.h"
 #include "eppgUtils.h"
 
-#ifdef EPPG_BLE_CLIENT
+#ifdef EPPG_BLE_HANDHELD
 #include <eppgBLE.h>
 extern EppgBLEClient ble;
 #else
@@ -88,7 +88,7 @@ void EppgThrottle::handleThrottle() {
     throttlePWM = mapd(potLvl, 0, 4095, ESC_MIN_PWM, maxPWM);
   }
 
-#ifdef EPPG_BLE_CLIENT
+#ifdef EPPG_BLE_HANDHELD
   #ifdef BLE_TEST
   Serial.printf("Set throttle: %d, %s\n", (int)throttlePWM,
                 ble.setThrottle(throttlePWM) ? "success" : "failed");
