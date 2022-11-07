@@ -4,6 +4,7 @@
 #include <NimBLEDevice.h>
 
 /* Generated UUID's */
+const char* const PAIRING_AVAILABLE_UUID = "8a8c184a-ffe6-4390-be9e-ef58645b5135";
 const char* const MAIN_SERVICE_UUID = "8877FB19-E00B-40BE-905E-ACB42C39E6B8";
 const char* const TH_CHAR_UUID = "5A57F691-C0B9-45DD-BDF1-279681212C29";
 const char* const STATUS_CHAR_UUID = "28913A56-5701-4B27-85DB-50985F224847";

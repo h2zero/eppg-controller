@@ -13,10 +13,22 @@ static QueueHandle_t bleQueue;
 
 class ServerCallbacks : public NimBLEServerCallbacks {
   void onConnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) {
-    Serial.print("Client connected, address: ");
-    Serial.println(NimBLEAddress(desc->peer_ota_addr).toString().c_str());
+    NimBLEAddress peerAddr(desc->peer_ota_addr);
+    Serial.printf("Client connected, address: %s\n", peerAddr.toString().c_str());
+#ifndef DISABLE_BLE_SECURITY
+    // disconnect if already bonded to a handheld device and this peer is not bonded with us
+    if (NimBLEDevice::getNumBonds() && !NimBLEDevice::isBonded(peerAddr)) {
+      pServer->disconnect(desc->conn_handle);
+    }
+/*  Workaround NimBLE bug, security should be initiated by the client only for now
+      else if (!desc->sec_state.encrypted) {
+      NimBLEDevice::startSecurity(desc->conn_handle);
+    }
+*/
+#else
     unsigned long evt = bleEvent::CONNECTED;
     xQueueSendToBack(bleQueue, &evt, 0);
+#endif
   }
 
   void onDisconnect(NimBLEServer* pServer) {
@@ -24,24 +36,27 @@ class ServerCallbacks : public NimBLEServerCallbacks {
     xQueueSendToBack(bleQueue, &evt, 0);
   }
 
-  uint32_t onPassKeyRequest() {
-    Serial.println("Server Passkey Request");
-    return 123456;
-  }
-
-  bool onConfirmPIN(uint32_t pass_key) {
-    Serial.print("The passkey YES/NO number: ");Serial.println(pass_key);
-    return true;
-  }
-
+#ifndef DISABLE_BLE_SECURITY
   void onAuthenticationComplete(ble_gap_conn_desc* desc) {
     if(!desc->sec_state.encrypted) {
       NimBLEDevice::getServer()->disconnect(desc->conn_handle);
       Serial.println("Encrypt connection failed - disconnecting client");
       return;
+    } else {
+      // Change to advertising the main service UUID after pairing complete
+      NimBLEAdvertising *pAdvertising = NimBLEDevice::getAdvertising();
+      pAdvertising->reset();
+      pAdvertising->removeServiceUUID(NimBLEUUID(PAIRING_AVAILABLE_UUID)); // workaround reset bug
+      pAdvertising->addServiceUUID(MAIN_SERVICE_UUID);
+      NimBLEDevice::whiteListAdd(NimBLEAddress(desc->peer_ota_addr));
+      // only allow connections from bonded peers
+      pAdvertising->setScanFilter(true, true);
+      unsigned long evt = bleEvent::CONNECTED;
+      xQueueSendToBack(bleQueue, &evt, 0);
     }
     Serial.println("Authentication Complete");
   }
+#endif
 };
 
 class throttleChrCallbacks: public NimBLECharacteristicCallbacks {
@@ -155,6 +170,7 @@ void EppgBLEServer::begin() {
   Serial.println("Setting up BLE");
   NimBLEDevice::init("OpenPPG Controller");
   NimBLEDevice::setPower(ESP_PWR_LVL_P9);
+  NimBLEDevice::setSecurityAuth(true, false, false); // enable bonding, no MITM, no SC
 
   NimBLEServer *pServer = NimBLEDevice::createServer();
   pServer->setCallbacks(new ServerCallbacks);
@@ -189,7 +205,22 @@ void EppgBLEServer::begin() {
   pEnvService->start();
 
   NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
+#ifndef DISABLE_BLE_SECURITY
+  // If not bonded with a handheld device, advertise the pairing available UUID
+  if (!NimBLEDevice::getNumBonds()) {
+    pAdvertising->addServiceUUID(PAIRING_AVAILABLE_UUID);
+  } else {
+    pAdvertising->addServiceUUID(pMainSvc->getUUID());
+    // Add bonded devices to the whitelist
+    int bondCount = NimBLEDevice::getNumBonds();
+    for (int i = 0; i < bondCount; i++) {
+      NimBLEDevice::whiteListAdd(NimBLEDevice::getBondedAddress(i));
+    }
+    pAdvertising->setScanFilter(true, true); // only allow connections from bonded devices
+  }
+#else
   pAdvertising->addServiceUUID(pMainSvc->getUUID());
+#endif
   pAdvertising->setScanResponse(false);
 
   bleQueue = xQueueCreate(32, sizeof(unsigned long));

@@ -10,8 +10,17 @@ static QueueHandle_t bleQueue;
 
 class ClientCallbacks : public NimBLEClientCallbacks {
   void onConnect(NimBLEClient* pClient) {
+#ifndef DISABLE_BLE_SECURITY
+    if (pClient->getConnInfo().isEncrypted()) {
+      unsigned long evt = bleEvent::CONNECTED;
+      xQueueSendToBack(bleQueue, &evt, 0);
+    } else {
+      pClient->secureConnection();
+    }
+#else
     unsigned long evt = bleEvent::CONNECTED;
     xQueueSendToBack(bleQueue, &evt, 0);
+#endif
   }
 
   void onDisconnect(NimBLEClient* pClient) {
@@ -23,31 +32,43 @@ class ClientCallbacks : public NimBLEClientCallbacks {
     return true;
   }
 
-  uint32_t onPassKeyRequest(){
-    Serial.println("Client Passkey Request");
-    return 123456;
-  }
-
-  bool onConfirmPIN(uint32_t pass_key){
-    Serial.print("The passkey YES/NO number: ");
-    Serial.println(pass_key);
-    return true;
-  }
-
-  void onAuthenticationComplete(ble_gap_conn_desc* desc){
+#ifndef DISABLE_BLE_SECURITY
+  void onAuthenticationComplete(ble_gap_conn_desc* desc) {
     if(!desc->sec_state.encrypted) {
       Serial.println("Encrypt connection failed - disconnecting");
       NimBLEDevice::getClientByID(desc->conn_handle)->disconnect();
       return;
     }
+
+    // Add bonded peer to whitelist
+    NimBLEDevice::whiteListAdd(NimBLEAddress(desc->peer_ota_addr));
+    // Set scan filter to only process bonded peers added to the whitelist
+    NimBLEDevice::getScan()->setFilterPolicy(BLE_HCI_SCAN_FILT_USE_WL);
+    Serial.println("Authentication Complete");
+    unsigned long evt = bleEvent::CONNECTED;
+    xQueueSendToBack(bleQueue, &evt, 0);
   }
+#endif
 };
 
 class AdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks {
   void onResult(NimBLEAdvertisedDevice* advertisedDevice) {
     Serial.print("Advertised Device found: ");
     Serial.println(advertisedDevice->toString().c_str());
-    if(advertisedDevice->isAdvertisingService(NimBLEUUID(MAIN_SERVICE_UUID)))
+
+#ifndef DISABLE_BLE_SECURITY
+    // Precautionary - Do not connect if already bonded to a hub and it is not this one.
+    if (NimBLEDevice::getNumBonds() && !NimBLEDevice::isBonded(advertisedDevice->getAddress())) {
+      return;
+    }
+#endif
+
+    // Only connect to devices advertising the openppg service or pairing available service when not bonded
+    if (advertisedDevice->isAdvertisingService(NimBLEUUID(MAIN_SERVICE_UUID))
+#ifndef DISABLE_BLE_SECURITY
+        || (advertisedDevice->isAdvertisingService(NimBLEUUID(PAIRING_AVAILABLE_UUID))
+        && !NimBLEDevice::getNumBonds()))
+#endif
     {
       Serial.println("Found openppg service");
       NimBLEDevice::getScan()->stop();
@@ -110,7 +131,7 @@ void EppgBLEClient::processEvent(unsigned long event) {
 }
 
 bool EppgBLEClient::arm() {
-  if (!pClient->isConnected()) {
+  if (!this->isConnected()) {
     return false;
   }
 
@@ -122,7 +143,7 @@ bool EppgBLEClient::arm() {
 }
 
 bool EppgBLEClient::disarm() {
-  if (!pClient->isConnected()) {
+  if (!this->isConnected()) {
     return false;
   }
 
@@ -134,7 +155,7 @@ bool EppgBLEClient::disarm() {
 }
 
 bool EppgBLEClient::setThrottle(int val) {
-  if (!pClient->isConnected()) {
+  if (!this->isConnected()) {
     return false;
   }
 
@@ -144,7 +165,7 @@ bool EppgBLEClient::setThrottle(int val) {
 }
 
 float EppgBLEClient::getTemp() {
-  if (!pClient->isConnected()) {
+  if (!this->isConnected()) {
     return 0;
   }
   NimBLEAttValue v = pClient->getValue(NimBLEUUID(ENV_SERVICE_UUID), NimBLEUUID(TEMP_CHAR_UUID));
@@ -152,7 +173,7 @@ float EppgBLEClient::getTemp() {
 }
 
 float EppgBLEClient::getBmp() {
-  if (!pClient->isConnected()) {
+  if (!this->isConnected()) {
     return 0;
   }
   NimBLEAttValue v = pClient->getValue(NimBLEUUID(ENV_SERVICE_UUID), NimBLEUUID(BARO_CHAR_UUID));
@@ -160,7 +181,7 @@ float EppgBLEClient::getBmp() {
 }
 
 bool EppgBLEClient::isConnected() {
-  return pClient->isConnected();
+  return this->connecting ? false : pClient->isConnected();
 }
 
 void EppgBLEClient::statusNotify(NimBLERemoteCharacteristic *pChar,
@@ -230,6 +251,7 @@ bool EppgBLEClient::connect() {
   if (!pMainSvc || !pThChr || !pStChr || !pBattSvc || !pBattChr) {
     this->disconnect();
     this->connecting = false;
+    Serial.println("Failed to get required device attributes");
     return false;
   }
 
@@ -248,10 +270,27 @@ void EppgBLEClient::begin() {
   Serial.println("Setting up BLE");
   NimBLEDevice::init("");
   NimBLEDevice::setPower(ESP_PWR_LVL_P9);
+  NimBLEDevice::setSecurityAuth(true, false, false);  // enable bonding, no MITM, no SC
+
   pClient = NimBLEDevice::createClient();
   pClient->setClientCallbacks(new ClientCallbacks);
+
   NimBLEScan* pScan = NimBLEDevice::getScan();
   pScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks);
+
+#ifndef DISABLE_BLE_SECURITY
+  // If bonded with any hub devices add them to the scan whitelist
+  int bondCount = NimBLEDevice::getNumBonds();
+  for (int i = 0; i < bondCount; i++) {
+    NimBLEDevice::whiteListAdd(NimBLEDevice::getBondedAddress(i));
+  }
+
+  // Set scan filter to only process bonded peers added to the whitelist
+  if (bondCount) {
+    pScan->setFilterPolicy(BLE_HCI_SCAN_FILT_USE_WL);
+  }
+#endif
+
   bleQueue = xQueueCreate(32, sizeof(unsigned long));
   xTaskCreate(clientTask, "clientTask", 5000, this, 2, NULL);
 }
