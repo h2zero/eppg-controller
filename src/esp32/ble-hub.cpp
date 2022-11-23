@@ -6,6 +6,8 @@
 #include "ble-hub.h"
 #include "eppgPower.h"
 #include "eppgESC.h"
+#include <Adafruit_BMP3XX.h>
+
 
 #ifdef BLE_LATENCY_TEST
 latency_test_t ble_lat_test;
@@ -13,6 +15,7 @@ latency_test_t ble_lat_test;
 
 extern EppgBLEServer ble;
 extern EppgEsc esc;
+extern Adafruit_BMP3XX bmp;
 
 void bleConnected(){Serial.println("Client Connected");}
 void bleDisconnected() {Serial.println("Client Disconnected");}
