@@ -7,8 +7,8 @@
 #include "eppgUtils.h"
 
 extern bool armed;
-extern CircularBuffer<float, 50> voltageBuffer;
 
+static CircularBuffer<float, 50> voltageBuffer;
 static unsigned long prevPwrMillis = 0;
 static float wattsHoursUsed = 0;
 static float watts = 0;
@@ -83,4 +83,8 @@ void setWatts(float val) {
 
 float getWatts() {
   return watts;
+}
+
+void pushVoltage(float volts) {
+  voltageBuffer.push(volts);
 }

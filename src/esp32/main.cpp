@@ -13,7 +13,6 @@
   #include <ResponsiveAnalogRead.h>  // smoothing for throttle
 #endif
 
-#include <CircularBuffer.h>      // smooth out readings
 #include "ble-handheld.h"        // BLE
 #include "ble-hub.h"
 #include "eppgESC.h"
@@ -42,14 +41,8 @@ Adafruit_DRV2605 vibe;
 EppgDisplay display;
 #endif
 
-CircularBuffer<float, 50> voltageBuffer;
 STR_DEVICE_DATA_140_V1 deviceData;
 STR_ESC_TELEMETRY_140 telemetryData;
-
-#ifdef M0_PIO
-  extEEPROM eep(kbits_64, 1, 64);
-#endif
-
 bool armed = false;
 
 // local functions

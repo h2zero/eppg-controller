@@ -7,5 +7,6 @@ float  getBatteryPercent(float voltage);
 float  getWattHoursUsed();
 void   setWatts(float val);
 float  getWatts();
+void   pushVoltage(float volts);
 
 #endif

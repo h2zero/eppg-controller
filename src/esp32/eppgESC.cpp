@@ -6,7 +6,6 @@
 #include "../../inc/esp32/structs.h"
 #include "eppgPower.h"
 
-extern CircularBuffer<float, 50> voltageBuffer;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern STR_ESC_TELEMETRY_140 telemetryData;
 
@@ -99,7 +98,7 @@ void EppgEsc::parseData() {
   }
 
   if (telemetryData.volts > 1) {  // ignore empty data
-    voltageBuffer.push(telemetryData.volts);
+    pushVoltage(telemetryData.volts);
   }
 
   // Serial.print(F("Volts: "));
