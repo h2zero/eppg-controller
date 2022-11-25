@@ -88,3 +88,16 @@ float getWatts() {
 void pushVoltage(float volts) {
   voltageBuffer.push(volts);
 }
+
+void trackPowerTask(void * parameter) {
+  for (;;) {
+    trackPower();
+    delay(250);
+  }
+
+  vTaskDelete(NULL); // should never reach this
+}
+
+void trackPowerTaskStart() {
+  xTaskCreate(trackPowerTask, "trackPower", 5000, NULL, 1, NULL);
+}

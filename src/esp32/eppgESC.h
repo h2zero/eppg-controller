@@ -3,13 +3,7 @@
 
 #ifndef ESC_TELEM_DISABLED
 
-#ifdef M0_PIO
-  #include "../../inc/sp140/m0-config.h"          // device config
-#elif RP_PIO
-  #include "../../inc/sp140/rp2040-config.h"         // device config
-#elif ESP_PLATFORM
-  #include "../../inc/esp32/esp32-config.h"
-#endif
+#include "../../inc/eppgConfig.h"
 #include <Servo.h>
 
 class EppgEsc : public Servo {

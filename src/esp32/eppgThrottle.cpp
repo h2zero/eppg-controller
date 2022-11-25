@@ -2,13 +2,7 @@
 
 #include <Arduino.h>
 
-#ifdef M0_PIO
-  #include "../../inc/sp140/m0-config.h"          // device config
-#elif RP_PIO
-  #include "../../inc/sp140/rp2040-config.h"         // device config
-#elif ESP_PLATFORM
-  #include "../../inc/esp32/esp32-config.h"
-#endif
+#include "../../inc/eppgConfig.h"
 #include "../../inc/esp32/globals.h"
 #include "../../inc/esp32/structs.h"
 #include "eppgThrottle.h"
@@ -24,6 +18,20 @@ extern EppgEsc esc;
 
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern bool armed;
+
+void handleThrottleTask(void * param) {
+  EppgThrottle *throttle = (EppgThrottle*)param;
+  for (;;) {
+    throttle->handleThrottle();
+#ifdef BLE_TEST
+    delay(100);
+#else
+    delay(22); // Update throttle every 22ms
+#endif
+  }
+
+  vTaskDelete(NULL); // should never reach this
+}
 
 EppgThrottle::EppgThrottle()
 : pot(THROTTLE_PIN, false),
@@ -138,6 +146,10 @@ void EppgThrottle::setArmed(bool enable) {
     potBuffer.clear();
     prevPotLvl = 0;
   }
+}
+
+void EppgThrottle::begin() {
+  xTaskCreate(handleThrottleTask, "handleThrottle", 5000, this, 2, NULL);
 }
 
 #endif // EPPG_BLE_HUB

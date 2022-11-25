@@ -21,6 +21,7 @@ class EppgThrottle {
 
 public:
   EppgThrottle();
+  void  begin();
   void  setPWM(float val);
   void  handleThrottle();
   bool  safe();

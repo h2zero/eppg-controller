@@ -3,11 +3,25 @@
 #include <Arduino.h>
 #include "eppgESC.h"
 #include <CircularBuffer.h>
-#include "../../inc/esp32/structs.h"
+#include "../../inc/esp32/globals.h"
 #include "eppgPower.h"
 
 extern STR_DEVICE_DATA_140_V1 deviceData;
-extern STR_ESC_TELEMETRY_140 telemetryData;
+static STR_ESC_TELEMETRY_140 telemetryData;
+
+const STR_ESC_TELEMETRY_140& getTelemetryData() {
+  return telemetryData;
+}
+
+void handleTelemetryTask(void * param) {
+  EppgEsc *esc = (EppgEsc*)param;
+  for (;;) {
+    esc->handleTelemetry();
+    delay(50);
+  }
+
+  vTaskDelete(NULL); // should never reach this
+}
 
 EppgEsc::EppgEsc()
 : escData{0},
@@ -24,6 +38,8 @@ EppgEsc::EppgEsc()
 void EppgEsc::begin() {
   SerialESC.begin(ESC_BAUD_RATE);
   SerialESC.setTimeout(ESC_TIMEOUT);
+  xTaskCreate(handleTelemetryTask, "handleTelemetry", 5000, this, 1, NULL);
+  trackPowerTaskStart();
 }
 
 void EppgEsc::serialRead() {  // TODO needed?

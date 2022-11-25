@@ -1,7 +1,7 @@
 // Copyright 2020 <Zach Whitehead>
 // OpenPPG
 #include <Arduino.h>
-#include "../../inc/esp32/esp32-config.h"
+#include "../../inc/eppgConfig.h"
 #include "../../inc/esp32/structs.h"         // data structs
 
 #ifndef EPPG_BLE_HANDHELD
@@ -10,6 +10,7 @@
 
 #ifndef EPPG_BLE_HUB
   #include <ResponsiveAnalogRead.h>  // smoothing for throttle
+  #include "eppgLED.h"
 #endif
 
 #include "ble-handheld.h"        // BLE
@@ -40,7 +41,6 @@ EppgDisplay display;
 #endif
 
 STR_DEVICE_DATA_140_V1 deviceData;
-STR_ESC_TELEMETRY_140 telemetryData;
 bool armed = false;
 
 #pragma message "Warning: OpenPPG software is in beta"
@@ -69,6 +69,8 @@ void setup() {
 
   setupBleClient();
   display.init();
+  initLEDs();
+  throttle.begin();
   //modeSwitch();
 #endif
 }
@@ -122,18 +124,6 @@ bool disarmSystem() {
   delay(1000);  // TODO just disable button thread // dont allow immediate rearming
 #endif // !defined(EPPG_BLE_HANDHELD)
   return true;
-}
-
-void setLEDs(byte state) {
-  // digitalWrite(LED_2, state);
-  // digitalWrite(LED_3, state);
-  digitalWrite(LED_SW, state);
-}
-
-// toggle LEDs
-void blinkLED(xTimerHandle pxTimer) {
-  byte ledState = !digitalRead(LED_SW);
-  setLEDs(ledState);
 }
 
 void handleArmFail() {

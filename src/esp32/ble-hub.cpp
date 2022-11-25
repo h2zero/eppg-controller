@@ -1,7 +1,7 @@
 #if defined(EPPG_BLE_HUB)
 
 #include <Arduino.h>
-#include "../../inc/esp32/esp32-config.h"
+#include "../../inc/eppgConfig.h"
 #include "../../inc/esp32/globals.h"
 #include "ble-hub.h"
 #include "eppgPower.h"
@@ -42,35 +42,6 @@ void bleDisarm() {
 #endif
 }
 
-void handleTelemetryTask(void * parameter) {
-  for (;;) {
-    esc.handleTelemetry();
-#ifndef BLE_TEST
-    ble.setBmp(getAltitudeM()); // Get pressure first to set the temp value.
-    ble.setTemp(getAmbientTempC());
-#else
-    double temp = random(1, 50);
-    temp += (random(1, 99) / 100.0F);
-    ble.setTemp(temp);
-    double pressure = random(300, 0xFFFF);
-    pressure += (random(1, 99) / 100.0F);
-    ble.setBmp(pressure);
-#endif
-    delay(50);
-  }
-
-  vTaskDelete(NULL); // should never reach this
-}
-
-void trackPowerTask(void * parameter) {
-  for (;;) {
-    trackPower();
-    delay(250);
-  }
-
-  vTaskDelete(NULL); // should never reach this
-}
-
 void setupBleServer() {
   SerialESC.begin(ESC_BAUD_RATE);
   SerialESC.setTimeout(ESC_TIMEOUT);
@@ -84,23 +55,29 @@ void setupBleServer() {
   ble.setArmCallback(bleArm);
   ble.setDisarmCallback(bleDisarm);
   ble.begin();
-
-  xTaskCreate(trackPowerTask, "trackPower", 5000, NULL, 1, NULL);
-  xTaskCreate(handleTelemetryTask, "handleTelemetry", 5000, NULL, 1, NULL);
 }
 
 void bleServerLoop() {
 #if defined(BLE_TEST)
-    ble.setBattery(random(0x00,0x64));
+  ble.setBattery(random(0x00,0x64));
   #ifdef BLE_LATENCY_TEST
-    ble_lat_test.count++;
-    ble_lat_test.time = millis();
-    ble.setStatus(ble_lat_test);
+  ble_lat_test.count++;
+  ble_lat_test.time = millis();
+  ble.setStatus(ble_lat_test);
   #else
-    ble.setStatus(random(0x00,0xFFFF));
+  ble.setStatus(random(0x00,0xFFFF));
   #endif
-  delay(500);
+  double temp = random(1, 50);
+  temp += (random(1, 99) / 100.0F);
+  ble.setTemp(temp);
+  double pressure = random(300, 0xFFFF);
+  pressure += (random(1, 99) / 100.0F);
+  ble.setBmp(pressure);
+#else
+  ble.setBmp(getAltitudeM()); // Get pressure first to set the temp value.
+  ble.setTemp(getAmbientTempC());
 #endif
+  delay(500);
 }
 
 #endif // EPPG_BLE_HUB

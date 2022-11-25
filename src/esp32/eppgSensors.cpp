@@ -1,11 +1,10 @@
 #include <Arduino.h>
 #include "eppgSensors.h"
-#include "../../inc/esp32/esp32-config.h"
+#include "../../inc/eppgConfig.h"
 #include "../../inc/esp32/globals.h"  // device config
-#include "../../inc/esp32/structs.h"  // data structs
 
 #ifdef EPPG_BLE_HANDHELD
-#include "ble-handheld.h"
+#include <eppgBLE.h>
 extern EppgBLEClient ble;
 #else
 static Adafruit_BMP3XX bmp;

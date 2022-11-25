@@ -1,13 +1,10 @@
 #if defined(EPPG_BLE_HANDHELD)
 
 #include <Arduino.h>
-#include "../../inc/esp32/esp32-config.h"
+#include "../../inc/eppgConfig.h"
 #include "../../inc/esp32/globals.h"
 #include "ble-handheld.h"
 #include <eppgBLE.h>
-#include "eppgDisplay.h"
-#include "eppgButtons.h"
-#include "eppgThrottle.h"
 
 #ifdef BLE_LATENCY_TEST
 latency_test_t ble_lat_test;
@@ -15,14 +12,9 @@ latency_test_t ble_lat_last;
 uint32_t disconnect_count;
 #endif
 
-static xTimerHandle ledBlinkHandle;
-static xTimerHandle checkButtonsHandle;
-
 extern EppgBLEClient ble;
-extern EppgDisplay display;
-extern EppgThrottle throttle;
 extern bool armed;
-
+static STR_ESC_TELEMETRY_140 telemetryData;
 
 void bleConnected(){Serial.println("Connected to server");}
 void bleDisconnected() {
@@ -58,51 +50,10 @@ void bleStatusUpdate(uint32_t val){Serial.printf("Status update: %08x\n", val);}
 
 void bleBatteryUpdate(uint8_t val){Serial.printf("Battery update: %u\n", val);}
 
-void updateDisplayTask(void * parameter) {
-  for (;;) {
-    display.update();
-    delay(250); // Update display every 250ms
-  }
-
-  vTaskDelete(NULL); // should never reach this
-}
-
-void handleThrottleTask(void * parameter) {
-  for (;;) {
-    throttle.handleThrottle();
-#ifdef BLE_TEST
-    delay(100);
-#else
-    delay(22); // Update throttle every 22ms
-#endif
-  }
-
-  vTaskDelete(NULL); // should never reach this
-}
-
-void stopBlinkTimer() {
-  xTimerStop(ledBlinkHandle, portMAX_DELAY);
-}
-
-void startBlinkTimer() {
-  xTimerReset(ledBlinkHandle, portMAX_DELAY);
-}
-
 void setupBleClient() {
   ble.setStatusCallback(bleStatusUpdate);
   ble.setBatteryCallback(bleBatteryUpdate);
   ble.begin();
-
-  // 500ms timer to blink the LED.
-  ledBlinkHandle = xTimerCreate("blinkLED", pdMS_TO_TICKS(500), pdTRUE, NULL, blinkLED);
-  xTimerReset(ledBlinkHandle, portMAX_DELAY);
-
-  // 5ms timer to check buttons
-  checkButtonsHandle = xTimerCreate("checkButtons", pdMS_TO_TICKS(5), pdTRUE, NULL, checkButtons);
-  xTimerReset(checkButtonsHandle, portMAX_DELAY);
-
-  xTaskCreate(updateDisplayTask, "updateDisplay", 5000, NULL, 1, NULL);
-  xTaskCreate(handleThrottleTask, "handleThrottle", 5000, NULL, 2, NULL);
 }
 
 void bleClientLoop() {
@@ -115,6 +66,10 @@ void bleClientLoop() {
   Serial.printf("Temp: %f, pressure %f\n", ble.getTemp(), ble.getBmp());
   delay(500);
 #endif
+}
+
+const STR_ESC_TELEMETRY_140& getTelemetryData() {
+  return telemetryData;
 }
 
 #endif // EPPG_BLE_HANDHELD

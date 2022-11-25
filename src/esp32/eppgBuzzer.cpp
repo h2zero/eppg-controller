@@ -2,14 +2,7 @@
 #ifndef EPPG_BLE_HUB
 
 #include <Arduino.h>
-#ifdef M0_PIO
-  #include "../../inc/sp140/m0-config.h"          // device config
-#elif RP_PIO
-  #include "../../inc/sp140/rp2040-config.h"         // device config
-#elif ESP_PLATFORM
-  #include "../../inc/esp32/esp32-config.h"
-#endif
-
+#include "../../inc/eppgConfig.h"
 #include "eppgBuzzer.h"
 #include <Adafruit_DRV2605.h>
 

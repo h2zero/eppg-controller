@@ -4,24 +4,13 @@
 
 #ifndef DISPLAY_DISABLED
 
-#ifdef M0_PIO
-  #include "../../inc/sp140/m0-config.h"          // device config
-#elif RP_PIO
-  #include "../../inc/sp140/rp2040-config.h"         // device config
-#elif ESP_PLATFORM
-  #include "../../inc/esp32/esp32-config.h"
-#endif
+#include "../../inc/eppgConfig.h"
 #include <TimeLib.h>  // convert time to hours mins etc
 #include <Fonts/FreeSansBold12pt7b.h>
 #include "../../inc/esp32/structs.h"
 #include "../../inc/esp32/globals.h"
 #include "eppgPower.h"
 #include "eppgThrottle.h"
-
-extern bool armed;
-extern STR_ESC_TELEMETRY_140 telemetryData;
-extern STR_DEVICE_DATA_140_V1 deviceData;
-extern EppgThrottle throttle;
 
 #define LAST_PAGE 1  // starts at 0
 #define BLACK                 ST77XX_BLACK
@@ -38,6 +27,20 @@ extern EppgThrottle throttle;
 #define CRUISE_BG_COLOR       YELLOW
 
 #define DIGIT_ARRAY_SIZE      7
+
+extern bool armed;
+extern STR_DEVICE_DATA_140_V1 deviceData;
+extern EppgThrottle throttle;
+
+void updateDisplayTask(void * param) {
+  EppgDisplay *display = (EppgDisplay*)param;
+  for (;;) {
+    display->update();
+    delay(250); // Update display every 250ms
+  }
+
+  vTaskDelete(NULL); // should never reach this
+}
 
 EppgDisplay::EppgDisplay()
 :display(Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST)),
@@ -70,6 +73,7 @@ void EppgDisplay::init() {
   displayMeta();
   digitalWrite(TFT_LITE, HIGH);  // Backlight on
   delay(2500);
+  xTaskCreate(updateDisplayTask, "updateDisplay", 5000, this, 1, NULL);
 }
 
 void EppgDisplay::reset() {
@@ -349,6 +353,7 @@ void EppgDisplay::displayAlt() {
 // display first page (voltage and current)
 void EppgDisplay::displayPage0() {
   float avgVoltage = getBatteryVoltSmoothed();
+  STR_ESC_TELEMETRY_140 telemetryData = getTelemetryData();
 
   dispValue(avgVoltage, prevVolts, 5, 1, 84, 42, 2, BLACK, DEFAULT_BG_COLOR);
   display.print("V");
@@ -379,6 +384,8 @@ void EppgDisplay::displayPage0() {
 
 // display second page (mAh and armed time)
 void EppgDisplay::displayPage1() {
+  STR_ESC_TELEMETRY_140 telemetryData = getTelemetryData();
+
   dispValue(telemetryData.volts, prevVolts, 5, 1, 84, 42, 2, BLACK, DEFAULT_BG_COLOR);
   display.print("V");
 

@@ -1,13 +1,7 @@
 #ifndef EPPG_BLE_HUB
 
-#include <Arduino.h>
-#ifdef M0_PIO
-  #include "../../inc/sp140/m0-config.h"          // device config
-#elif RP_PIO
-  #include "../../inc/sp140/rp2040-config.h"         // device config
-#elif ESP_PLATFORM
-  #include "../../inc/esp32/esp32-config.h"
-#endif
+#include <eppgButtons.h>
+#include "../../inc/eppgConfig.h"
 #include <AceButton.h>           // button clicks
 #include "../../inc/esp32/structs.h"
 #include "../../inc/esp32/globals.h"
@@ -23,14 +17,11 @@ extern bool cruising;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern EppgThrottle throttle;
 
-AceButton button_top(BUTTON_TOP);
-ButtonConfig* buttonConfig = button_top.getButtonConfig();
+static xTimerHandle checkButtonsHandle;
+static AceButton button_top(BUTTON_TOP);
+static ButtonConfig* buttonConfig = button_top.getButtonConfig();
 
-#ifdef ESP_PLATFORM
 void checkButtons(xTimerHandle pxTimer) {
-#else
-void checkButtons() {
-#endif
   button_top.check();
 }
 
@@ -88,6 +79,10 @@ void initButtons() {
   buttonConfig->setFeature(ButtonConfig::kFeatureSuppressAfterLongPress);
   buttonConfig->setLongPressDelay(2500);
   buttonConfig->setDoubleClickDelay(600);
+
+  // 5ms timer to check buttons
+  checkButtonsHandle = xTimerCreate("checkButtons", pdMS_TO_TICKS(5), pdTRUE, NULL, checkButtons);
+  xTimerReset(checkButtonsHandle, portMAX_DELAY);
 }
 
 #endif // EPPG_BLE_HUB
