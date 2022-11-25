@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "eppgDisplay.h"
+#include "eppgSensors.h"
 
 #ifndef DISPLAY_DISABLED
 
@@ -18,7 +19,6 @@
 #include "eppgThrottle.h"
 
 extern bool armed;
-extern float armAltM;
 extern STR_ESC_TELEMETRY_140 telemetryData;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern EppgThrottle throttle;
@@ -58,7 +58,8 @@ EppgDisplay::EppgDisplay()
  prevSeconds(0),
  prevKilowatts(0),
  prevKwh(0),
- lastAltM(0) {
+ lastAltM(0),
+ armAltM(0) {
 }
 
 void EppgDisplay::init() {
@@ -411,6 +412,7 @@ void EppgDisplay::displayDisarm() {
 }
 
 void EppgDisplay::displayArm() {
+  this->armAltM = getAltitudeM();
   bottom_bg_color = ARMED_BG_COLOR;
   display.fillRect(0, 93, 160, 40, bottom_bg_color);
 }

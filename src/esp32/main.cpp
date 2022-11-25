@@ -5,7 +5,7 @@
 #include "../../inc/esp32/structs.h"         // data structs
 
 #ifndef EPPG_BLE_HANDHELD
-  #include <Adafruit_BMP3XX.h>     // barometer
+  #include "eppgSensors.h"     // barometer
 #endif
 
 #ifndef EPPG_BLE_HUB
@@ -34,7 +34,6 @@
 // globally available
 #ifdef EPPG_BLE_HUB
 EppgBLEServer ble;
-Adafruit_BMP3XX bmp;
 EppgEsc esc;  // Creating a servo class with name of esc
 #elif EPPG_BLE_HANDHELD
 EppgBLEClient ble;
@@ -52,15 +51,8 @@ STR_ESC_TELEMETRY_140 telemetryData;
 #endif
 
 bool armed = false;
-float armAltM = 0;
-
-// bmp
-static float ambientTempC = 0;
-static float altitudeM = 0;
-static float aglM = 0;
 
 // local functions
-void initBmp();
 void initVibe();
 void vibrateNotify();
 bool runVibe(unsigned int sequence[], int siz);
@@ -141,17 +133,6 @@ void disarmSystem() {
 #endif // !defined(EPPG_BLE_HANDHELD)
 }
 
-#ifndef EPPG_BLE_HANDHELD
-// Start the bmp388 sensor
-void initBmp() {
-  bmp.begin_I2C();
-  bmp.setOutputDataRate(BMP3_ODR_25_HZ);
-  bmp.setTemperatureOversampling(BMP3_OVERSAMPLING_2X);
-  bmp.setPressureOversampling(BMP3_OVERSAMPLING_4X);
-  bmp.setIIRFilterCoeff(BMP3_IIR_FILTER_COEFF_15);
-}
-#endif
-
 void setLEDs(byte state) {
   // digitalWrite(LED_2, state);
   // digitalWrite(LED_3, state);
@@ -209,7 +190,6 @@ bool armSystem() {
   stopBlinkTimer();
 
   #ifndef BLE_TEST
-  armAltM = getAltitudeM();
   setLEDs(HIGH);
 
   uint16_t arm_melody[] = { 1760, 1976, 2093 };
@@ -221,21 +201,6 @@ bool armSystem() {
 
 #endif // !defined(EPPG_BLE_HANDHELD)
   return true;
-}
-
-// convert barometer data to altitude in meters
-float getAltitudeM() {
-#ifdef EPPG_BLE_HANDHELD
-  ambientTempC = ble.getTemp();
-  float atmospheric = ble.getBmp() / 100.0F;
-  float altitudeM = 44330.0 * (1.0 - pow(atmospheric / deviceData.sea_pressure, 0.1903));
-#else
-  bmp.performReading();
-  ambientTempC = bmp.temperature;
-  float altitudeM = bmp.readAltitude(deviceData.sea_pressure);
-#endif
-  aglM = altitudeM - armAltM;
-  return altitudeM;
 }
 
 #ifndef EPPG_BLE_HUB

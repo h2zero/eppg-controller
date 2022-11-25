@@ -24,6 +24,7 @@ class EppgDisplay {
   float           prevKilowatts;
   float           prevKwh;
   float           lastAltM;
+  float           armAltM;
 
   void     displayMeta();
   void     dispValue(float value, float &prevVal, int maxDigits, int precision,

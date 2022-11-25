@@ -6,7 +6,7 @@
 #include "ble-hub.h"
 #include "eppgPower.h"
 #include "eppgESC.h"
-#include <Adafruit_BMP3XX.h>
+#include "eppgSensors.h"
 
 
 #ifdef BLE_LATENCY_TEST
@@ -15,7 +15,6 @@ latency_test_t ble_lat_test;
 
 extern EppgBLEServer ble;
 extern EppgEsc esc;
-extern Adafruit_BMP3XX bmp;
 
 void bleConnected(){Serial.println("Client Connected");}
 void bleDisconnected() {Serial.println("Client Disconnected");}
@@ -47,9 +46,8 @@ void handleTelemetryTask(void * parameter) {
   for (;;) {
     esc.handleTelemetry();
 #ifndef BLE_TEST
-    bmp.performReading();
-    ble.setTemp(bmp.temperature);
-    ble.setBmp(bmp.pressure);
+    ble.setBmp(getAltitudeM()); // Get pressure first to set the temp value.
+    ble.setTemp(getAmbientTempC());
 #else
     double temp = random(1, 50);
     temp += (random(1, 99) / 100.0F);
