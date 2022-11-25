@@ -7,7 +7,7 @@
 
 // main
 bool   armSystem();
-void   disarmSystem();
+bool   disarmSystem();
 void   handleThrottle();
 void   blinkLED(xTimerHandle pxTimer);
 bool   throttleSafe();

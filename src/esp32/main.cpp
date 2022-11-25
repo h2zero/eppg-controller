@@ -90,7 +90,7 @@ void loop() {
 }
 
 // disarm, remove cruise, alert, save updated stats
-void disarmSystem() {
+bool disarmSystem() {
 #if !defined(EPPG_BLE_HANDHELD)
   armed = false;
   esc.writeMicroseconds(ESC_DISARMED_PWM);
@@ -98,7 +98,11 @@ void disarmSystem() {
   throttle.setPWM(ESC_DISARMED_PWM);
   armed = !ble.disarm();
   Serial.printf("Disarm: %s\n", !armed ? "success" : "failed");
-  //TODO : handle failure
+  if (armed) {
+    handleArmFail();
+    return false;
+  }
+
   throttle.setArmed(armed);
   removeCruise(false);
   startBlinkTimer();
@@ -117,6 +121,7 @@ void disarmSystem() {
 
   delay(1000);  // TODO just disable button thread // dont allow immediate rearming
 #endif // !defined(EPPG_BLE_HANDHELD)
+  return true;
 }
 
 void setLEDs(byte state) {
@@ -144,6 +149,11 @@ bool armSystem() {
 #else
   armed = ble.arm();
   Serial.printf("Arm: %s\n", armed ? "success" : "failed");
+  if (!armed) {
+    handleArmFail();
+    return false;
+  }
+
   throttle.setArmed(armed);
   stopBlinkTimer();
 

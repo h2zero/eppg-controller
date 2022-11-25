@@ -105,7 +105,6 @@ void EppgThrottle::handleThrottle() {
 int EppgThrottle::limitedThrottle(int current, int last, int threshold) {
   if (current - last >= threshold) {  // accelerating too fast. limit
     int limitedThrottle = last + threshold;
-    // TODO: cleanup global var use
     prevPotLvl = limitedThrottle;  // save for next time
     return limitedThrottle;
   } else if (last - current >= threshold * 2) {  // decelerating too fast. limit
