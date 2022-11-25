@@ -9,7 +9,6 @@
 #endif
 
 #ifndef EPPG_BLE_HUB
-  #include <Adafruit_DRV2605.h>    // haptic controller
   #include <ResponsiveAnalogRead.h>  // smoothing for throttle
 #endif
 
@@ -37,18 +36,12 @@ EppgEsc esc;  // Creating a servo class with name of esc
 #elif EPPG_BLE_HANDHELD
 EppgBLEClient ble;
 EppgThrottle throttle;
-Adafruit_DRV2605 vibe;
 EppgDisplay display;
 #endif
 
 STR_DEVICE_DATA_140_V1 deviceData;
 STR_ESC_TELEMETRY_140 telemetryData;
 bool armed = false;
-
-// local functions
-void initVibe();
-void vibrateNotify();
-bool runVibe(unsigned int sequence[], int siz);
 
 #pragma message "Warning: OpenPPG software is in beta"
 
@@ -142,34 +135,6 @@ void handleArmFail() {
   uint16_t arm_fail_melody[] = { 820, 640 };
   playMelody(arm_fail_melody, 2);
 }
-
-#ifndef EPPG_BLE_HUB
-// initialize the vibration motor
-void initVibe() {
-  vibe.begin();
-  vibe.selectLibrary(1);
-  vibe.setMode(DRV2605_MODE_INTTRIG);
-  vibrateNotify();
-}
-
-bool runVibe(unsigned int sequence[], int siz) {
-  if (!ENABLE_VIB) { return false; }
-
-  for (int thisVibe = 0; thisVibe < siz; thisVibe++) {
-    vibe.setWaveform(thisVibe, sequence[thisVibe]);
-  }
-  vibe.go();
-  return true;
-}
-
-void vibrateNotify() {
-  if (!ENABLE_VIB) { return; }
-
-  vibe.setWaveform(0, 15);  // 1 through 117 (see example sketch)
-  vibe.setWaveform(1, 0);
-  vibe.go();
-}
-#endif
 
 // get the PPG ready to fly
 bool armSystem() {
