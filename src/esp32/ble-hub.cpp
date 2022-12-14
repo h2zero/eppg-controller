@@ -74,7 +74,7 @@ void bleServerLoop() {
   pressure += (random(1, 99) / 100.0F);
   ble.setBmp(pressure);
 #else
-  ble.setBmp(getAltitudeM()); // Get pressure first to set the temp value.
+  ble.setBmp(getPressure()); // Get pressure first to set the temp value.
   ble.setTemp(getAmbientTempC());
 #endif
   delay(500);

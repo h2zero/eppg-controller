@@ -7,6 +7,7 @@
 
 void  initBmp();
 float getAltitudeM();
+float getPressure();
 float getAmbientTempC();
 
 #endif // INC_EPPG_SENSORS_H_
