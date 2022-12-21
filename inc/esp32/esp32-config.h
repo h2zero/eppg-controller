@@ -17,7 +17,7 @@
 #define TFT_CS 38
 #define TFT_DC 7
 #define TFT_LITE 14
-#define ESC_PIN 5
+#define ESC_PIN 9 //5
 #define ENABLE_VIB            false    // enable vibration
 
 #endif  // INC_ESP32_CONFIG_H_

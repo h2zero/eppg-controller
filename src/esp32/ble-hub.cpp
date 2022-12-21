@@ -22,7 +22,14 @@ void bleThrottleUpdate(int val) {
 #ifdef BLE_TEST
   Serial.printf("Updated Throttle: %d\n", val);
 #else
-  esc.writeMicroseconds(val);
+  //esc.writeMicroseconds(val);
+  Serial.println(val);
+
+  if (val > 1500){
+    analogWrite(ESC_PIN, 255);
+  } else {
+    analogWrite(ESC_PIN, 0);
+  }
 #endif
 }
 
@@ -30,7 +37,7 @@ void bleArm() {
 #ifdef BLE_TEST
   Serial.println("Armed from BLE");
 #else
-  esc.writeMicroseconds(ESC_DISARMED_PWM);
+  //esc.writeMicroseconds(ESC_DISARMED_PWM);
 #endif
 }
 
@@ -38,7 +45,7 @@ void bleDisarm() {
 #ifdef BLE_TEST
   Serial.println("Disarmed from BLE");
 #else
-  esc.writeMicroseconds(ESC_DISARMED_PWM);
+  //esc.writeMicroseconds(ESC_DISARMED_PWM);
 #endif
 }
 
@@ -46,8 +53,8 @@ void setupBleServer() {
   SerialESC.begin(ESC_BAUD_RATE);
   SerialESC.setTimeout(ESC_TIMEOUT);
 
-  esc.attach(ESC_PIN);
-  esc.writeMicroseconds(ESC_DISARMED_PWM);
+  //esc.attach(ESC_PIN);
+  //esc.writeMicroseconds(ESC_DISARMED_PWM);
 
   ble.setConnectCallback(bleConnected);
   ble.setDisconnectCallback(bleDisconnected);

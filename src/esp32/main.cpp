@@ -61,6 +61,7 @@ void setup() {
 
 #if defined(EPPG_BLE_HANDHELD)
   pinMode(LED_SW, OUTPUT);
+  pinMode(ESC_PIN, OUTPUT);    // sets the digital pin 13 as output
 
   analogReadResolution(12);
 
@@ -72,6 +73,8 @@ void setup() {
   display.init();
   initLEDs();
   throttle.begin();
+  pinMode(11, INPUT_PULLUP);    // sets the digital pin 11 as input
+
   //modeSwitch();
 #endif
 }
