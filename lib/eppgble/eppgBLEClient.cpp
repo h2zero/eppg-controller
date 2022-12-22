@@ -67,9 +67,9 @@ class AdvertisedDeviceCallbacks: public NimBLEAdvertisedDeviceCallbacks {
     if (advertisedDevice->isAdvertisingService(NimBLEUUID(MAIN_SERVICE_UUID))
 #ifndef DISABLE_BLE_SECURITY
         || (advertisedDevice->isAdvertisingService(NimBLEUUID(PAIRING_AVAILABLE_UUID))
-        && !NimBLEDevice::getNumBonds()))
+        && !NimBLEDevice::getNumBonds())
 #endif
-    {
+    ) {
       Serial.println("Found openppg service");
       NimBLEDevice::getScan()->stop();
 
