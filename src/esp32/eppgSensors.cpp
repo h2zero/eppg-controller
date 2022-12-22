@@ -23,18 +23,28 @@ void initBmp() {
 #endif
 }
 
-// convert barometer data to altitude in meters
-float getAltitudeM() {
-#ifdef EPPG_BLE_HANDHELD
-  float atmospheric = ble.getBmp() / 100.0F;
-  float altitudeM = 44330.0 * (1.0 - pow(atmospheric / deviceData.sea_pressure, 0.1903));
-#else
-  bmp.performReading();
-  float altitudeM = bmp.readAltitude(deviceData.sea_pressure);
+// Get the baro pressure reading from bmp3xx
+float getPressure() {
+#ifndef EPPG_BLE_HANDHELD
+  if (! bmp.performReading()) {
+    Serial.println("Failed to perform reading :(");
+    return 0.0;
+  }
+  return bmp.pressure; // /100 for hPa
 #endif
-  return altitudeM;
 }
 
+#define SEALEVELPRESSURE_HPA (1013.25)
+// convert barometer data to altitude in meters
+float getAltitudeM() { 
+#ifdef EPPG_BLE_HANDHELD // Only should be called in handheld
+  float atmospheric = ble.getBmp() / 100.0F;
+  float altitudeM = 44330.0 * (1.0 - pow(atmospheric / deviceData.sea_pressure, 0.1903));
+  return altitudeM;
+#endif
+}
+
+// Get the temperature reading from bmp3xx
 float getAmbientTempC() {
 #ifdef EPPG_BLE_HANDHELD
   return ble.getTemp();
