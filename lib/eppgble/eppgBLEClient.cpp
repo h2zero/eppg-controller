@@ -8,6 +8,11 @@ using namespace std::placeholders;
 static NimBLEClient *pClient = nullptr;
 static QueueHandle_t bleQueue;
 
+#ifndef EPPG_BLE_CONN_INTERVAL
+  #define EPPG_BLE_CONN_INTERVAL 6 // 7.5ms
+#endif
+
+
 class ClientCallbacks : public NimBLEClientCallbacks {
   void onConnect(NimBLEClient* pClient) {
 #ifndef DISABLE_BLE_SECURITY
@@ -274,6 +279,7 @@ void EppgBLEClient::begin() {
 
   pClient = NimBLEDevice::createClient();
   pClient->setClientCallbacks(new ClientCallbacks);
+  pClient->setConnectionParams(EPPG_BLE_CONN_INTERVAL, EPPG_BLE_CONN_INTERVAL, 0, 200);
 
   NimBLEScan* pScan = NimBLEDevice::getScan();
   pScan->setAdvertisedDeviceCallbacks(new AdvertisedDeviceCallbacks);
