@@ -40,41 +40,37 @@ long lastTime = 0; //Simple local timer. Limits amount if I2C traffic to u-blox 
 // Start the bmp388 sensor
 void debugGps() {
 #ifndef EPPG_BLE_HANDHELD
-  if (millis() - lastTime > 1000)
-  {
-    lastTime = millis(); //Update the timer
-    long latitude = myGNSS.getLatitude();
-    Serial.print(F("Lat: "));
-    Serial.print(latitude);
+  long latitude = myGNSS.getLatitude();
+  Serial.print(F("Lat: "));
+  Serial.print(latitude);
 
-    long longitude = myGNSS.getLongitude();
-    Serial.print(F(" Long: "));
-    Serial.print(longitude);
+  long longitude = myGNSS.getLongitude();
+  Serial.print(F(" Long: "));
+  Serial.print(longitude);
 
-    long speed = myGNSS.getGroundSpeed();
-    Serial.print(F(" Speed: "));
-    Serial.print(speed);
-    Serial.print(F(" (mm/s)"));
+  long speed = myGNSS.getGroundSpeed();
+  Serial.print(F(" Speed: "));
+  Serial.print(speed);
+  Serial.print(F(" (mm/s)"));
 
-    long heading = myGNSS.getHeading();
-    Serial.print(F(" Heading: "));
-    Serial.print(heading);
-    Serial.print(F(" (degrees * 10^-5)"));
+  long heading = myGNSS.getHeading();
+  Serial.print(F(" Heading: "));
+  Serial.print(heading);
+  Serial.print(F(" (degrees * 10^-5)"));
 
-    long altitude = myGNSS.getAltitude();
-    Serial.print(F(" Alt: "));
-    Serial.print(altitude);
-    Serial.print(F(" (mm)"));
-    
-    byte fixType = myGNSS.getFixType();
-    Serial.print(F(" Fix: "));
-    if(fixType == 0) Serial.print(F("No fix"));
-    else if(fixType == 2) Serial.print(F("2D"));
-    else if(fixType == 3) Serial.print(F("3D"));
-    else if(fixType == 5) Serial.print(F("Time only"));
+  long altitude = myGNSS.getAltitude();
+  Serial.print(F(" Alt: "));
+  Serial.print(altitude);
+  Serial.print(F(" (mm)"));
+  
+  byte fixType = myGNSS.getFixType();
+  Serial.print(F(" Fix: "));
+  if(fixType == 0) Serial.print(F("No fix"));
+  else if(fixType == 2) Serial.print(F("2D"));
+  else if(fixType == 3) Serial.print(F("3D"));
+  else if(fixType == 5) Serial.print(F("Time only"));
 
-    Serial.println();
-  }
+  Serial.println();
 #endif
 }
 

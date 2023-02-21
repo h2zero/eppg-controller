@@ -8,6 +8,9 @@ static NimBLECharacteristic *pStChr = nullptr;
 static NimBLECharacteristic *pArmChr = nullptr;
 static NimBLECharacteristic *pTempChr = nullptr;
 static NimBLECharacteristic *pBaroChr = nullptr;
+static NimBLECharacteristic *pSpeedChr = nullptr;
+static NimBLECharacteristic *pHeadChr = nullptr;
+static NimBLECharacteristic *pGpsAltChr = nullptr;
 
 static QueueHandle_t bleQueue;
 
@@ -163,7 +166,19 @@ void EppgBLEServer::setTemp(double temp) {
 }
 
 void EppgBLEServer::setBmp(double pressure) {
-  pBaroChr->setValue<uint32_t>((pressure + 0.05F) * 10);
+  pBaroChr->setValue<int32_t>((pressure + 0.05F) * 10);
+}
+
+void EppgBLEServer::setGroundSpeed(int32_t speed) { //  speed in mm/s 
+  pSpeedChr->setValue<int32_t>(speed );
+}
+
+void EppgBLEServer::setHeading(int32_t heading) { // heading in degrees * 10^-5
+  pHeadChr->setValue<int32_t>(heading);
+}
+
+void EppgBLEServer::setGpsAlt(int32_t alt) { // alt in mm above ellipsoid
+  pGpsAltChr->setValue<int32_t>(alt);
 }
 
 void EppgBLEServer::begin() {
@@ -199,6 +214,9 @@ void EppgBLEServer::begin() {
   NimBLEService *pEnvService = pServer->createService(ENV_SERVICE_UUID);
   pTempChr = pEnvService->createCharacteristic(TEMP_CHAR_UUID, NIMBLE_PROPERTY::READ, 2);
   pBaroChr = pEnvService->createCharacteristic(BARO_CHAR_UUID, NIMBLE_PROPERTY::READ, 4);
+  pSpeedChr = pEnvService->createCharacteristic(GPS_GROUND_SPEED_UUID, NIMBLE_PROPERTY::READ, 4);
+  pHeadChr = pEnvService->createCharacteristic(GPS_HEADING_UUID, NIMBLE_PROPERTY::READ, 4);
+  pGpsAltChr = pEnvService->createCharacteristic(GPS_ALT_CHAR_UUID, NIMBLE_PROPERTY::READ, 4);
 
   pMainSvc->start();
   pBattSvc->start();

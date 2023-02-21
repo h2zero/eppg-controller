@@ -3,7 +3,7 @@
 
 #ifndef EPPG_BLE_HANDHELD
 #include <Adafruit_BMP3XX.h>     // barometer
-#include <SparkFun_u-blox_GNSS_Arduino_Library.h> //http://librarymanager/All#SparkFun_u-blox_GNSS
+#include <SparkFun_u-blox_GNSS_Arduino_Library.h>
 #endif
 
 void  initBmp();
