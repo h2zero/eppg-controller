@@ -56,6 +56,7 @@ void setup() {
 #if defined(EPPG_BLE_HUB)
   esc.begin();
   initBmp();
+  initGps();
   setupBleServer();
 #endif
 

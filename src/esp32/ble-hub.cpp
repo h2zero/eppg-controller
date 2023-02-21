@@ -76,6 +76,7 @@ void bleServerLoop() {
 #else
   ble.setBmp(getPressure()); // Get pressure first to set the temp value.
   ble.setTemp(getAmbientTempC());
+  debugGps();
 #endif
   delay(500);
 }
