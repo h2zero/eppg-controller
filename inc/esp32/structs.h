@@ -11,7 +11,7 @@ typedef struct {
   float eRPM;
   float inPWM;
   float outPWM;
-  uint8_t status_flags;
+  uint8_t statusFlag;
   word checksum;
 }STR_ESC_TELEMETRY_140;
 

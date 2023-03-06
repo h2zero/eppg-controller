@@ -25,8 +25,6 @@ void handleTelemetryTask(void * param) {
 
 EppgEsc::EppgEsc()
 : escData{0},
-  transmitted(0),
-  failed(0),
   _volts(0),
   _temperatureC(0),
   _amps(0),
@@ -50,44 +48,27 @@ void EppgEsc::serialRead() {  // TODO needed?
 
 void EppgEsc::handleTelemetry() {
   serialRead();
-  SerialESC.readBytes(escData, ESC_DATA_SIZE);
-  if (enforceFletcher16()) {
-    parseData();
-  }
-  // printRawSentence();
+  SerialESC.readBytes(escData, ESC_DATA_V2_SIZE);
+  parseData(escData);
 }
 
 // run checksum and return true if valid
-bool EppgEsc::enforceFletcher16() {
-  // Check checksum, revert to previous data if bad:
-  word checksum = (unsigned short)(word(escData[19], escData[18]));
-  unsigned char sum1 = 0;
-  unsigned char sum2 = 0;
-  unsigned short sum = 0;
-  for (int i = 0; i < ESC_DATA_SIZE-2; i++) {
-    sum1 = (unsigned char)(sum1 + escData[i]);
-    sum2 = (unsigned char)(sum2 + sum1);
+// new v2
+int EppgEsc::checkFlectcher16(byte byteBuffer[]) {
+  int fCCRC16;
+  int i;
+  int c0 = 0;
+  int c1 = 0;
+
+  // Calculate checksum intermediate bytesUInt16
+  for (i = 0; i < 18; i++) //Check only first 18 bytes, skip crc bytes
+  {
+      c0 = (int)(c0 + ((int)byteBuffer[i])) % 255;
+      c1 = (int)(c1 + c0) % 255;
   }
-  sum = (unsigned char)(sum1 - sum2);
-  sum = sum << 8;
-  sum |= (unsigned char)(sum2 - 2*sum1);
-  // Serial.print(F("     SUM: "));
-  // Serial.println(sum);
-  // Serial.print(sum1,HEX);
-  // Serial.print(" ");
-  // Serial.println(sum2,HEX);
-  // Serial.print(F("CHECKSUM: "));
-  // Serial.println(checksum);
-  if (sum != checksum) {
-    //Serial.println(F("_____________________CHECKSUM FAILED!"));
-    failed++;
-    if (failed >= 1000) {  // keep track of how reliable the transmission is
-      transmitted = 1;
-      failed = 0;
-    }
-    return false;
-  }
-  return true;
+  // Assemble the 16-bit checksum value
+  fCCRC16 = ( c1 << 8 ) | c0;
+  return (int)fCCRC16;
 }
 
 // for debugging
@@ -101,77 +82,117 @@ void EppgEsc::printRawSentence() {
 }
 
 
-void EppgEsc::parseData() {
-  // LSB First
-  // TODO is this being called even with no ESC?
+void EppgEsc::parseData(byte buffer[]) {
+  // if(sizeof(buffer) != 22) {
+  //     Serial.print("wrong size ");
+  //     Serial.println(sizeof(buffer));
+  //     return; //Ignore malformed packets
+  // }
 
-  _volts = word(escData[1], escData[0]);
-  //_volts = ((unsigned int)escData[1] << 8) + escData[0];
-  telemetryData.volts = _volts / 100.0;
+  if (buffer[20] != 255 || buffer[21] != 255) {
+    Serial.println("no stop byte");
+
+    return; //Stop byte of 65535 not recieved
+  }
+
+  //Check the fletcher checksum
+  int checkFletch = checkFlectcher16(buffer);
+
+  // checksum
+  int checkCalc = (int)(((buffer[19] << 8) + buffer[18]));
+
+  //TODO alert if no new data in 3 seconds
+  // Checksums do not match
+  if (checkFletch != checkCalc) {
+    return;
+  }
+  // Voltage
+  float voltage = (buffer[1] << 8 | buffer[0]) / 100.0;
+  telemetryData.volts = voltage; //Voltage
 
   if (telemetryData.volts > BATT_MIN_V) {
-    telemetryData.volts += 1.5;  // calibration
+    telemetryData.volts += 1.0; // calibration
   }
 
   if (telemetryData.volts > 1) {  // ignore empty data
     pushVoltage(telemetryData.volts);
   }
 
-  // Serial.print(F("Volts: "));
-  // Serial.println(telemetryData.volts);
+  // Temperature
+  float rawVal = (float)((buffer[3] << 8) + buffer[2]);
 
-  // batteryPercent = mapd(telemetryData.volts, BATT_MIN_V, BATT_MAX_V, 0.0, 100.0); // flat line
+  static int SERIESRESISTOR = 10000;
+  static int NOMINAL_RESISTANCE = 10000;
+  static int NOMINAL_TEMPERATURE = 25;
+  static int BCOEFFICIENT = 3455;
 
-  _temperatureC = word(escData[3], escData[2]);
-  telemetryData.temperatureC = _temperatureC/100.0;
-  // reading 17.4C = 63.32F in 84F ambient?
-  // Serial.print(F("TemperatureC: "));
-  // Serial.println(temperatureC);
+  //convert value to resistance
+  float Rntc = (4096 / (float) rawVal) - 1;
+  Rntc = SERIESRESISTOR / Rntc;
 
-  _amps = word(escData[5], escData[4]);
-  telemetryData.amps = _amps;
+  // Get the temperature
+  float temperature = Rntc / (float) NOMINAL_RESISTANCE; // (R/Ro)
+  temperature = (float) log(temperature); // ln(R/Ro)
+  temperature /= BCOEFFICIENT; // 1/B * ln(R/Ro)
 
-  // Serial.print(F("Amps: "));
-  // Serial.println(amps);
+  temperature += 1.0 / ((float) NOMINAL_TEMPERATURE + 273.15); // + (1/To)
+  temperature = 1.0 / temperature; // Invert
+  temperature -= 273.15; // convert to Celcius
+
+  // filter bad values
+  if (temperature < 0 || temperature > 200) {
+    temperature = 0;
+  }
+
+  temperature = (float) trunc(temperature * 100) / 100; // 2 decimal places
+  telemetryData.temperatureC = temperature;
+
+  // Current
+  int currentAmpsInput = (int)((buffer[5] << 8) + buffer[4]);
+  telemetryData.amps = (currentAmpsInput / 12.5); //Input current
+
+  // Serial.print("amps ");
+  // Serial.print(currentAmpsInput);
+  // Serial.print(" - ");
 
   setWatts(telemetryData.amps * telemetryData.volts);
 
-  // 7 and 6 are reserved bytes
+  // eRPM
+  int poleCount = 62;
+  int currentERPM = (int)((buffer[11] << 24) + (buffer[10] << 16) + (buffer[9] << 8) + (buffer[8] << 0)); //ERPM output
+  int currentRPM = currentERPM / poleCount;  // Real RPM output
+  telemetryData.eRPM = currentRPM;
 
-  _eRPM = escData[11];     // 0
-  _eRPM << 8;
-  _eRPM += escData[10];    // 0
-  _eRPM << 8;
-  _eRPM += escData[9];     // 30
-  _eRPM << 8;
-  _eRPM += escData[8];     // b4
-  telemetryData.eRPM = _eRPM/6.0/2.0;
+  // Serial.print("RPM ");
+  // Serial.print(currentRPM);
+  // Serial.print(" - ");
 
-  // Serial.print(F("eRPM: "));
-  // Serial.println(eRPM);
+  // Input Duty
+  int throttleDuty = (int)(((buffer[13] << 8) + buffer[12]) / 10);
+  telemetryData.inPWM = (throttleDuty / 10); //Input throttle
 
-  _inPWM = word(escData[13], escData[12]);
-  telemetryData.inPWM = _inPWM/100.0;
+  // Serial.print("throttle ");
+  // Serial.print(telemetryData.inPWM);
+  // Serial.print(" - ");
 
-  // Serial.print(F("inPWM: "));
-  // Serial.println(inPWM);
+  // Motor Duty
+  int motorDuty = (int)(((buffer[15] << 8) + buffer[14]) / 10);
+  int currentMotorDuty = (motorDuty / 10); //Motor duty cycle
 
-  _outPWM = word(escData[15], escData[14]);
-  telemetryData.outPWM = _outPWM/100.0;
+  /* Status Flags
+  # Bit position in byte indicates flag set, 1 is set, 0 is default
+  # Bit 0: Motor Started, set when motor is running as expected
+  # Bit 1: Motor Saturation Event, set when saturation detected and power is reduced for desync protection
+  # Bit 2: ESC Over temperature event occuring, shut down method as per configuration
+  # Bit 3: ESC Overvoltage event occuring, shut down method as per configuration
+  # Bit 4: ESC Undervoltage event occuring, shut down method as per configuration
+  # Bit 5: Startup error detected, motor stall detected upon trying to start*/
+  telemetryData.statusFlag = buffer[16];
+  // Serial.print("status ");
+  // Serial.print(raw_telemdata.statusFlag, BIN);
+  // Serial.print(" - ");
+  // Serial.println(" ");
 
-  // Serial.print(F("outPWM: "));
-  // Serial.println(outPWM);
-
-  // 17 and 16 are reserved bytes
-  // 19 and 18 is checksum
-  telemetryData.checksum = word(escData[19], escData[18]);
-
-  // Serial.print(F("CHECKSUM: "));
-  // Serial.print(escData[19]);
-  // Serial.print(F(" + "));
-  // Serial.print(escData[18]);
-  // Serial.print(F(" = "));
-  // Serial.println(checksum);
 }
 
 #endif // ESC_TELEM_DISABLED

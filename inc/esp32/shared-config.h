@@ -26,6 +26,7 @@
 
 #define ESC_BAUD_RATE         115200
 #define ESC_DATA_SIZE         20
+#define ESC_DATA_V2_SIZE      22
 #define READ_INTERVAL         0
 #define ESC_TIMEOUT           10
 #define ENABLE_BUZ            true    // enable buzzer

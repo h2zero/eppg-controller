@@ -7,9 +7,7 @@
 #include <Servo.h>
 
 class EppgEsc : public Servo {
-  byte escData[ESC_DATA_SIZE];
-  unsigned long transmitted;
-  unsigned long failed;
+  byte escData[ESC_DATA_V2_SIZE];
   uint16_t      _volts;
   uint16_t      _temperatureC;
   int16_t       _amps;
@@ -18,8 +16,8 @@ class EppgEsc : public Servo {
   uint16_t      _outPWM;
 
   void serialRead();
-  bool enforceFletcher16();
-  void parseData();
+  int checkFlectcher16(byte buffer[]);
+  void parseData(byte buffer[]);
   void printRawSentence();
 
 public:
