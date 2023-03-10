@@ -10,7 +10,7 @@
 #define LED_SW        18  // output for LED
 #define THROTTLE_PIN  3  // throttle pot input
 
-#define SerialESC  Serial1  // ESC UART connection
+#define SerialESC  Serial0  // ESC UART connection
 
 // SP140
 #define TFT_RST 10

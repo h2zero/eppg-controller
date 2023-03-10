@@ -14,9 +14,6 @@
 #include "eppgStorage.h"
 
 #ifdef ESP_PLATFORM
-  #if ARDUINO_USB_MODE
-    #error USB OTG Mode must be enabled.
-  #endif
   #include "USB.h"
   USBCDC usb_web;
 #else

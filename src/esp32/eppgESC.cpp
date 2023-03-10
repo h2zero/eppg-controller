@@ -47,6 +47,7 @@ void EppgEsc::serialRead() {  // TODO needed?
 }
 
 void EppgEsc::handleTelemetry() {
+  Serial.println(F("Handling Telemetry"));
   serialRead();
   SerialESC.readBytes(escData, ESC_DATA_V2_SIZE);
   parseData(escData);
