@@ -5,5 +5,6 @@
 
 void   setupBleServer();
 void   bleServerLoop();
+void   setupBms();
 
 #endif

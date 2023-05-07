@@ -50,5 +50,6 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "*.tpp": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "${workspaceFolder}/.pio/libdeps/esp32-s3-BLE-Handheld/Adafruit BusIO"
 }
