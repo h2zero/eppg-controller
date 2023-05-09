@@ -261,6 +261,11 @@ uint16_t EppgDisplay::batt2color(int percentage) {
 }
 
 void EppgDisplay::update() {
+  // update the clock every second
+  displayClock();
+}
+
+void EppgDisplay::displayClock() {
  if (targetTime < millis()) {
     // Set next update for 1 second later
     targetTime = millis() + 1000;

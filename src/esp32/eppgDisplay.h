@@ -49,6 +49,7 @@ public:
   void   displayMessage(const char *message);
   void   displayVersions();
   void   displayBootLoader();
+  void   displayClock();
   int    nextPage();
   void   displaySetCruise();
   void   displayRemoveCruise();
