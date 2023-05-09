@@ -82,10 +82,10 @@ void EppgDisplay::init() {
   Serial.println("update disp");
   //tft.print("Horizontalz gradient");
   targetTime = millis() + 1000;
+  displayMeta();
 
   //pinMode(TFT_LITE, OUTPUT);
   //reset();
-  //tftMeta();
   //digitalWrite(TFT_LITE, HIGH);  // Backlight on
   delay(2500);
   xTaskCreate(updateDisplayTask, "updateDisplay", 5000, this, 1, NULL);
@@ -103,7 +103,8 @@ void EppgDisplay::reset() {
 
 void EppgDisplay::displayMeta() {
   //tft.setFont(&FreeSansBold12pt7b);
-  tft.setTextColor(BLACK);
+  tft.setTextFont(4);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setCursor(25, 30);
   tft.println("OpenPPG");
   //tft.setFont();
@@ -221,7 +222,7 @@ void EppgDisplay::dispValue(float value, float &prevVal, int maxDigits, int prec
   }
   tft.setTextColor(textColor);
 
-  // ERASE ONLY THE NESSESARY DIGITS:
+  // ERASE ONLY THE NECESSARY DIGITS:
   for (int i=0; i<numDigits; i++) {
     if (digit[i]!=prevDigit[i]) {
       tft.setTextColor(background);
