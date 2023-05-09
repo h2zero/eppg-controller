@@ -80,7 +80,7 @@ void setup() {
 void loop() {
   // from WebUSB to both Serial & webUSB
 #if defined(USE_TINYUSB) && !defined(BLE_TEST) // causes delay?
-  if (!armed) parse_usb_serial();
+ // if (!armed) parse_usb_serial();
 #endif
 
 #ifdef EPPG_BLE_HUB
@@ -89,6 +89,7 @@ void loop() {
 
 #ifdef EPPG_BLE_HANDHELD
   bleClientLoop();
+  display.update();
 #endif
 }
 

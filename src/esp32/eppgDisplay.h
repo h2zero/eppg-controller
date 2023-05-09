@@ -1,6 +1,8 @@
 #ifndef INC_EPPG_DISPLAY_H_
 #define INC_EPPG_DISPLAY_H_
 
+#include <TFT_eSPI.h>
+
 #ifndef DISPLAY_DISABLED
 #include <Adafruit_ST7735.h>
 
@@ -57,10 +59,11 @@ public:
 
 #else // DISPLAY_DISABLED
 class EppgDisplay {
+
 public:
-  void   init() {}
+  void   init();
   void   reset() {}
-  void   update() {}
+  void   update();
   void   displayMessage(const char *message) {(void)message; return;}
   void   displayBootLoader(){}
   void   displaySetCruise(){}

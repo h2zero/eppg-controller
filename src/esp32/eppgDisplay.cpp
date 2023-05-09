@@ -463,4 +463,25 @@ int EppgDisplay::nextPage() {
   return ++page;
 }
 
+#else
+TFT_eSPI tft = TFT_eSPI();
+
+void EppgDisplay::init() {
+  tft.init();
+  tft.setRotation(1);
+  tft.fillScreen(TFT_DARKGREY);
+  tft.setTextFont(2);
+}
+
+void EppgDisplay::update() {
+  Serial.println("update disp");
+  tft.fillRectHGradient(0, 0, 160, 50, TFT_MAGENTA, TFT_BLUE);
+  tft.setCursor(10,10);
+  tft.print("Horizontal gradient");
+
+  tft.fillRectVGradient(0, 60, 160, 50, TFT_ORANGE, TFT_RED);
+  tft.setCursor(10,70);
+  tft.print("Vertical gradient");
+  delay(100);
+}
 #endif // DISPLAY_DISABLED
