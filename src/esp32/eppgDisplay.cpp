@@ -6,7 +6,6 @@
 
 #include "../../inc/eppgConfig.h"
 #include <TimeLib.h>  // convert time to hours mins etc
-#include <Fonts/FreeSansBold12pt7b.h>
 #include "../../inc/esp32/structs.h"
 #include "../../inc/esp32/globals.h"
 #include "eppgPower.h"
@@ -32,10 +31,12 @@ extern bool armed;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern EppgThrottle throttle;
 
+TFT_eSPI tft = TFT_eSPI();
+
 void updateDisplayTask(void * param) {
-  EppgDisplay *display = (EppgDisplay*)param;
+  EppgDisplay *tft = (EppgDisplay*)param;
   for (;;) {
-    display->update();
+    tft->update();
     delay(250); // Update display every 250ms
   }
 
@@ -43,8 +44,7 @@ void updateDisplayTask(void * param) {
 }
 
 EppgDisplay::EppgDisplay()
-:display(Adafruit_ST7735(TFT_CS, TFT_DC, TFT_RST)),
- prevBatteryPercent(0),
+:prevBatteryPercent(0),
  page(0),
  bottom_bg_color(DEFAULT_BG_COLOR),
  screen_wiped(false),
@@ -66,39 +66,52 @@ EppgDisplay::EppgDisplay()
 }
 
 void EppgDisplay::init() {
-  display.initR(INITR_BLACKTAB);  // Init ST7735S chip, black tab
+  tft.init();
+  tft.setRotation(1);
+  tft.fillScreen(TFT_DARKGREY);
+  tft.setTextFont(2);
 
-  pinMode(TFT_LITE, OUTPUT);
-  reset();
-  displayMeta();
-  digitalWrite(TFT_LITE, HIGH);  // Backlight on
+  Serial.println("update disp");
+  tft.fillRectHGradient(0, 0, 160, 50, TFT_MAGENTA, TFT_BLUE);
+  tft.setCursor(10,10);
+  tft.print("Horizontalz gradient");
+
+  tft.fillRectVGradient(0, 60, 160, 50, TFT_ORANGE, TFT_RED);
+  tft.setCursor(10,70);
+  tft.print("Vertical gradient");
+  delay(100);
+
+  //pinMode(TFT_LITE, OUTPUT);
+  //reset();
+  //tftMeta();
+  //digitalWrite(TFT_LITE, HIGH);  // Backlight on
   delay(2500);
   xTaskCreate(updateDisplayTask, "updateDisplay", 5000, this, 1, NULL);
 }
 
 void EppgDisplay::reset() {
-  display.fillScreen(DEFAULT_BG_COLOR);
-  display.setTextColor(BLACK);
-  display.setCursor(0, 0);
-  display.setTextSize(1);
-  display.setTextWrap(true);
+  tft.fillScreen(DEFAULT_BG_COLOR);
+  tft.setTextColor(BLACK);
+  tft.setCursor(0, 0);
+  tft.setTextSize(1);
+  tft.setTextWrap(true);
 
-  display.setRotation(deviceData.screen_rotation);  // 1=right hand, 3=left hand
+  tft.setRotation(deviceData.screen_rotation);  // 1=right hand, 3=left hand
 }
 
 void EppgDisplay::displayMeta() {
-  display.setFont(&FreeSansBold12pt7b);
-  display.setTextColor(BLACK);
-  display.setCursor(25, 30);
-  display.println("OpenPPG");
-  display.setFont();
-  display.setTextSize(2);
-  display.setCursor(60, 60);
-  display.print("v" + String(VERSION_MAJOR) + "." + String(VERSION_MINOR));
+  //tft.setFont(&FreeSansBold12pt7b);
+  tft.setTextColor(BLACK);
+  tft.setCursor(25, 30);
+  tft.println("OpenPPG");
+  //tft.setFont();
+  //tft.setTextSize(2);
+  tft.setCursor(60, 60);
+  tft.print("v" + String(VERSION_MAJOR) + "." + String(VERSION_MINOR));
 #ifdef RP_PIO
-  display.print("R");
+  tft.print("R");
 #endif
-  display.setCursor(54, 90);
+  tft.setCursor(54, 90);
   displayTime(deviceData.armed_time);
 }
 
@@ -106,53 +119,53 @@ void EppgDisplay::displayTime(int val) {
   int minutes = val / 60;  // numberOfMinutes(val);
   int seconds = numberOfSeconds(val);
 
-  display.print(convertToDigits(minutes));
-  display.print(":");
-  display.print(convertToDigits(seconds));
+  tft.print(convertToDigits(minutes));
+  tft.print(":");
+  tft.print(convertToDigits(seconds));
 }
 
 // TODO (bug) rolls over at 99mins
 void EppgDisplay::displayTime(int val, int x, int y, uint16_t bg_color) {
-  // displays number of minutes and seconds (since armed and throttled)
-  display.setCursor(x, y);
-  display.setTextSize(2);
-  display.setTextColor(BLACK);
+  // tfts number of minutes and seconds (since armed and throttled)
+  tft.setCursor(x, y);
+  tft.setTextSize(2);
+  tft.setTextColor(BLACK);
   minutes = val / 60;
   seconds = numberOfSeconds(val);
   if (minutes < 10) {
-    display.setCursor(x, y);
-    display.print("0");
+    tft.setCursor(x, y);
+    tft.print("0");
   }
   dispValue(minutes, prevMinutes, 2, 0, x, y, 2, BLACK, bg_color);
-  display.setCursor(x+24, y);
-  display.print(":");
-  display.setCursor(x+36, y);
+  tft.setCursor(x+24, y);
+  tft.print(":");
+  tft.setCursor(x+36, y);
   if (seconds < 10) {
-    display.print("0");
+    tft.print("0");
   }
   dispValue(seconds, prevSeconds, 2, 0, x+36, y, 2, BLACK, bg_color);
 }
 
 // display hidden page (firmware version and total armed time)
 void EppgDisplay::displayVersions() {
-  display.setTextSize(2);
-  display.print(F("v"));
-  display.print(VERSION_MAJOR);
-  display.print(F("."));
-  display.println(VERSION_MINOR);
+  tft.setTextSize(2);
+  tft.print(F("v"));
+  tft.print(VERSION_MAJOR);
+  tft.print(F("."));
+  tft.println(VERSION_MINOR);
   addVSpace();
-  display.setTextSize(2);
+  tft.setTextSize(2);
   displayTime(deviceData.armed_time);
-  display.print(F(" h:m"));
+  tft.print(F(" h:m"));
   // addVSpace();
-  // display.print(chipId()); // TODO: trim down
+  // tft.print(chipId()); // TODO: trim down
 }
 
 // display hidden page (firmware version and total armed time)
 void EppgDisplay::displayMessage(const char *message) {
-  display.setCursor(0, 0);
-  display.setTextSize(2);
-  display.println(message);
+  tft.setCursor(0, 0);
+  tft.setTextSize(2);
+  tft.println(message);
 }
 
 /**
@@ -169,8 +182,8 @@ String EppgDisplay::convertToDigits(byte digits) {
 }
 
 void EppgDisplay::addVSpace() {
-  display.setTextSize(1);
-  display.println(" ");
+  tft.setTextSize(1);
+  tft.println(" ");
 }
 
 //**************************************************************************************//
@@ -196,40 +209,40 @@ void EppgDisplay::dispValue(float value, float &prevVal, int maxDigits, int prec
     }
   }
 
-  display.setTextSize(textSize);
-  display.setCursor(x, y);
+  tft.setTextSize(textSize);
+  tft.setCursor(x, y);
 
   // PRINT LEADING SPACES TO RIGHT-ALIGN:
-  display.setTextColor(background);
+  tft.setTextColor(background);
   for(int i=0; i<(maxDigits-numDigits); i++){
-    display.print(static_cast<char>(218));
+    tft.print(static_cast<char>(218));
   }
-  display.setTextColor(textColor);
+  tft.setTextColor(textColor);
 
   // ERASE ONLY THE NESSESARY DIGITS:
   for (int i=0; i<numDigits; i++) {
     if (digit[i]!=prevDigit[i]) {
-      display.setTextColor(background);
-      display.print(static_cast<char>(218));
+      tft.setTextColor(background);
+      tft.print(static_cast<char>(218));
     } else {
-      display.setTextColor(textColor);
-      display.print(digit[i]);
+      tft.setTextColor(textColor);
+      tft.print(digit[i]);
     }
   }
 
   // BACK TO THE BEGINNING:
-  display.setCursor(x, y);
+  tft.setCursor(x, y);
 
   // ADVANCE THE CURSOR TO THE PROPER LOCATION:
-  display.setTextColor(background);
+  tft.setTextColor(background);
   for (int i=0; i<(maxDigits-numDigits); i++) {
-    display.print(static_cast<char>(218));
+    tft.print(static_cast<char>(218));
   }
-  display.setTextColor(textColor);
+  tft.setTextColor(textColor);
 
   // PRINT THE DIGITS THAT NEED UPDATING
   for(int i=0; i<numDigits; i++){
-    display.print(digit[i]);
+    tft.print(digit[i]);
   }
 
   prevVal = value;
@@ -246,69 +259,7 @@ uint16_t EppgDisplay::batt2color(int percentage) {
 }
 
 void EppgDisplay::update() {
-  if (!screen_wiped) {
-    display.fillScreen(WHITE);
-    screen_wiped = true;
-  }
-  //Serial.print("v: ");
-  //Serial.println(volts);
 
-  displayPage0();
-  //dispValue(kWatts, prevKilowatts, 4, 1, 10, /*42*/55, 2, BLACK, DEFAULT_BG_COLOR);
-  //display.print("kW");
-
-  display.setTextColor(BLACK);
-  float avgVoltage = getBatteryVoltSmoothed();
-  float batteryPercent = getBatteryPercent(avgVoltage);  // multi-point line
-  // change battery color based on charge
-  int batt_width = map((int)batteryPercent, 0, 100, 0, 108);
-  display.fillRect(0, 0, batt_width, 36, batt2color(batteryPercent));
-
-  if (avgVoltage < BATT_MIN_V) {
-    if (batteryFlag) {
-      batteryFlag = false;
-      display.fillRect(0, 0, 108, 36, DEFAULT_BG_COLOR);
-    }
-    display.setCursor(12, 3);
-    display.setTextSize(2);
-    display.setTextColor(RED);
-    display.println("BATTERY");
-
-    if ( avgVoltage < 10 ) {
-      display.print(" ERROR");
-    } else {
-      display.print(" DEAD");
-    }
-  } else {
-    batteryFlag = true;
-    display.fillRect(map(batteryPercent, 0,100, 0,108), 0, map(batteryPercent, 0,100, 108,0), 36, DEFAULT_BG_COLOR);
-  }
-  // cross out battery box if battery is dead
-  if (batteryPercent <= 5) {
-    display.drawLine(0, 1, 106, 36, RED);
-    display.drawLine(0, 0, 108, 36, RED);
-    display.drawLine(1, 0, 110, 36, RED);
-  }
-  dispValue(batteryPercent, prevBatteryPercent, 3, 0, 108, 10, 2, BLACK, DEFAULT_BG_COLOR);
-  display.print("%");
-
-  // battery shape end
-  //display.fillRect(102, 0, 6, 9, BLACK);
-  //display.fillRect(102, 27, 6, 10, BLACK);
-
-  display.fillRect(0, 36, 160, 1, BLACK);
-  display.fillRect(108, 0, 1, 36, BLACK);
-  display.fillRect(0, 92, 160, 1, BLACK);
-
-  displayAlt();
-
-  //dispValue(ambientTempF, prevAmbTempF, 3, 0, 10, 100, 2, BLACK, DEFAULT_BG_COLOR);
-  //display.print("F");
-
-  handleFlightTime();
-  displayTime(throttleSecs, 8, 102, bottom_bg_color);
-
-  //dispPowerCycles(104,100,2);
 }
 
 // track flight timer
@@ -346,7 +297,7 @@ void EppgDisplay::displayAlt() {
 
   dispValue(alt, lastAltM, 5, 0, 70, 102, 2, BLACK, bottom_bg_color);
 
-  display.print(deviceData.metric_alt ? F("m") : F("ft"));
+  tft.print(deviceData.metric_alt ? F("m") : F("ft"));
   lastAltM = alt;
 }
 
@@ -356,29 +307,29 @@ void EppgDisplay::displayPage0() {
   STR_ESC_TELEMETRY_140 telemetryData = getTelemetryData();
 
   dispValue(avgVoltage, prevVolts, 5, 1, 84, 42, 2, BLACK, DEFAULT_BG_COLOR);
-  display.print("V");
+  tft.print("V");
 
   dispValue(telemetryData.amps, prevAmps, 3, 0, 108, 71, 2, BLACK, DEFAULT_BG_COLOR);
-  display.print("A");
+  tft.print("A");
 
   float kWatts = getWatts() / 1000.0;
   kWatts = constrain(kWatts, 0, 50);
 
   dispValue(kWatts, prevKilowatts, 4, 1, 10, 42, 2, BLACK, DEFAULT_BG_COLOR);
-  display.print("kW");
+  tft.print("kW");
 
   float kwh = getWattHoursUsed() / 1000;
   dispValue(kwh, prevKwh, 4, 1, 10, 71, 2, BLACK, DEFAULT_BG_COLOR);
-  display.print("kWh");
+  tft.print("kWh");
 
-  display.setCursor(30, 60);
-  display.setTextSize(1);
+  tft.setCursor(30, 60);
+  tft.setTextSize(1);
   if (deviceData.performance_mode == 0) {
-    display.setTextColor(BLUE);
-    display.print("CHILL");
+    tft.setTextColor(BLUE);
+    tft.print("CHILL");
   } else {
-    display.setTextColor(RED);
-    display.print("SPORT");
+    tft.setTextColor(RED);
+    tft.print("SPORT");
   }
 }
 
@@ -387,66 +338,66 @@ void EppgDisplay::displayPage1() {
   STR_ESC_TELEMETRY_140 telemetryData = getTelemetryData();
 
   dispValue(telemetryData.volts, prevVolts, 5, 1, 84, 42, 2, BLACK, DEFAULT_BG_COLOR);
-  display.print("V");
+  tft.print("V");
 
   dispValue(telemetryData.amps, prevAmps, 3, 0, 108, 71, 2, BLACK, DEFAULT_BG_COLOR);
-  display.print("A");
+  tft.print("A");
 
   float kwh = getWattHoursUsed() / 1000;
   dispValue(kwh, prevKilowatts, 4, 1, 10, 71, 2, BLACK, DEFAULT_BG_COLOR);
-  display.print("kWh");
+  tft.print("kWh");
 
-  display.setCursor(30, 60);
-  display.setTextSize(1);
+  tft.setCursor(30, 60);
+  tft.setTextSize(1);
   if (deviceData.performance_mode == 0) {
-    display.setTextColor(BLUE);
-    display.print("CHILL");
+    tft.setTextColor(BLUE);
+    tft.print("CHILL");
   } else {
-    display.setTextColor(RED);
-    display.print("SPORT");
+    tft.setTextColor(RED);
+    tft.print("SPORT");
   }
 }
 
 void EppgDisplay::displayBootLoader() {
-  display.fillScreen(DEFAULT_BG_COLOR);
+  tft.fillScreen(DEFAULT_BG_COLOR);
   displayMessage("BL - UF2");
 }
 
 void EppgDisplay::displayDisarm() {
   bottom_bg_color = DEFAULT_BG_COLOR;
-  display.fillRect(0, 93, 160, 40, bottom_bg_color);
+  tft.fillRect(0, 93, 160, 40, bottom_bg_color);
   update();
 }
 
 void EppgDisplay::displayArm() {
   this->armAltM = getAltitudeM();
   bottom_bg_color = ARMED_BG_COLOR;
-  display.fillRect(0, 93, 160, 40, bottom_bg_color);
+  tft.fillRect(0, 93, 160, 40, bottom_bg_color);
 }
 
 void EppgDisplay::displaySetCruise() {
     // update display to show cruise
-    display.setCursor(70, 60);
-    display.setTextSize(1);
-    display.setTextColor(RED);
-    display.print(F("CRUISE"));
+    tft.setCursor(70, 60);
+    tft.setTextSize(1);
+    tft.setTextColor(RED);
+    tft.print(F("CRUISE"));
 
     bottom_bg_color = YELLOW;
-    display.fillRect(0, 93, 160, 40, bottom_bg_color);
+    tft.fillRect(0, 93, 160, 40, bottom_bg_color);
 }
 
 void EppgDisplay::displayRemoveCruise() {
   // update bottom bar
   bottom_bg_color = DEFAULT_BG_COLOR;
   if (armed) { bottom_bg_color = ARMED_BG_COLOR; }
-  display.fillRect(0, 93, 160, 40, bottom_bg_color);
+  tft.fillRect(0, 93, 160, 40, bottom_bg_color);
 
   // update text status
-  display.setCursor(70, 60);
-  display.setTextSize(1);
-  display.setTextColor(DEFAULT_BG_COLOR);
-  display.print(F("CRUISE"));  // overwrite in bg color to remove
-  display.setTextColor(BLACK);
+  tft.setCursor(70, 60);
+  tft.setTextSize(1);
+  tft.setTextColor(DEFAULT_BG_COLOR);
+  tft.print(F("CRUISE"));  // overwrite in bg color to remove
+  tft.setTextColor(BLACK);
 }
 
 /**
@@ -455,7 +406,7 @@ void EppgDisplay::displayRemoveCruise() {
  * @return the number of next page
  */
 int EppgDisplay::nextPage() {
-  display.fillRect(0, 37, 160, 54, DEFAULT_BG_COLOR);
+  tft.fillRect(0, 37, 160, 54, DEFAULT_BG_COLOR);
 
   if (page >= LAST_PAGE) {
     return page = 0;
@@ -463,25 +414,4 @@ int EppgDisplay::nextPage() {
   return ++page;
 }
 
-#else
-TFT_eSPI tft = TFT_eSPI();
-
-void EppgDisplay::init() {
-  tft.init();
-  tft.setRotation(1);
-  tft.fillScreen(TFT_DARKGREY);
-  tft.setTextFont(2);
-}
-
-void EppgDisplay::update() {
-  Serial.println("update disp");
-  tft.fillRectHGradient(0, 0, 160, 50, TFT_MAGENTA, TFT_BLUE);
-  tft.setCursor(10,10);
-  tft.print("Horizontal gradient");
-
-  tft.fillRectVGradient(0, 60, 160, 50, TFT_ORANGE, TFT_RED);
-  tft.setCursor(10,70);
-  tft.print("Vertical gradient");
-  delay(100);
-}
 #endif // DISPLAY_DISABLED

@@ -7,7 +7,6 @@
 #include <Adafruit_ST7735.h>
 
 class EppgDisplay {
-  Adafruit_ST7735 display;
   float           prevBatteryPercent;
   int             page;
   uint16_t        bottom_bg_color;
@@ -61,9 +60,9 @@ public:
 class EppgDisplay {
 
 public:
-  void   init();
+  void   init() {}
   void   reset() {}
-  void   update();
+  void   update() {}
   void   displayMessage(const char *message) {(void)message; return;}
   void   displayBootLoader(){}
   void   displaySetCruise(){}
