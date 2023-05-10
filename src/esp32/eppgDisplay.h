@@ -55,6 +55,7 @@ public:
   void   displayRemoveCruise();
   void   displayDisarm();
   void   displayArm();
+  void   displayDiagnostics();
 };
 
 #else // DISPLAY_DISABLED

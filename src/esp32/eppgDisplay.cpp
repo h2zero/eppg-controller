@@ -94,6 +94,10 @@ void EppgDisplay::init() {
   //reset();
   //digitalWrite(TFT_LITE, HIGH);  // Backlight on
   delay(2500);
+  if( xSemaphoreTake( xSemaphore4tft, ( TickType_t ) 100 ) == pdTRUE ) {
+    tft.fillScreen(TFT_BLACK);
+    xSemaphoreGive( xSemaphore4tft );
+  }
   xTaskCreate(updateDisplayTask, "updateDisplay", 5000, this, 1, NULL);
 }
 
@@ -269,8 +273,13 @@ void EppgDisplay::update() {
   if( xSemaphoreTake( xSemaphore4tft, ( TickType_t ) 100 ) == pdTRUE ) {
     // update the clock every second
     displayClock(); 
+    displayDiagnostics(); 
     xSemaphoreGive( xSemaphore4tft );
   }
+}
+
+void EppgDisplay::displayDiagnostics(){
+  tft.drawString("Diagnostics Mode", 50, 50, 2);
 }
 
 void EppgDisplay::displayClock() {
