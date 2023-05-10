@@ -98,7 +98,8 @@ void EppgDisplay::init() {
     tft.fillScreen(TFT_BLACK);
     xSemaphoreGive( xSemaphore4tft );
   }
-  xTaskCreate(updateDisplayTask, "updateDisplay", 5000, this, 1, NULL);
+  // could call xTaskCreatePinnedToCore to create a task that is pinned to a specific core
+  xTaskCreate(updateDisplayTask, "updateDisplay", 20000, this, 1, NULL);
 }
 
 void EppgDisplay::reset() {
@@ -137,7 +138,7 @@ void EppgDisplay::displayTime(int val) {
 
 // TODO (bug) rolls over at 99mins
 void EppgDisplay::displayTime(int val, int x, int y, uint16_t bg_color) {
-  // tfts number of minutes and seconds (since armed and throttled)
+  // display number of minutes and seconds (since armed and throttled)
   tft.setCursor(x, y);
   tft.setTextSize(2);
   tft.setTextColor(BLACK);
@@ -279,7 +280,12 @@ void EppgDisplay::update() {
 }
 
 void EppgDisplay::displayDiagnostics(){
-  tft.drawString("Diagnostics Mode", 50, 50, 2);
+  tft.setCursor(0, 35, 4);
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.println("Diagnostics Mode");
+  tft.setTextFont(2);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.println("Hello World!");
 }
 
 void EppgDisplay::displayClock() {
