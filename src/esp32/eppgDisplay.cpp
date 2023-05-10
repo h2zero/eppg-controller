@@ -71,18 +71,24 @@ byte omm = 99, oss = 99;
 byte xcolon = 0, xsecs = 0;
 
 unsigned int colour = 0;
+SemaphoreHandle_t xSemaphore4tft;
 
 void EppgDisplay::init() {
-  tft.init();
-  tft.setRotation(1);
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextSize(1);
-  tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+  xSemaphore4tft = xSemaphoreCreateBinary();
+  xSemaphoreGive( xSemaphore4tft );
 
-  Serial.println("update disp");
-  //tft.print("Horizontalz gradient");
-  targetTime = millis() + 1000;
-  displayMeta();
+  if( xSemaphoreTake( xSemaphore4tft, ( TickType_t ) 100 ) == pdTRUE ) {
+    tft.init();
+    tft.setRotation(1);
+    tft.fillScreen(TFT_BLACK);
+    tft.setTextSize(1);
+    tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+
+    Serial.println("update disp");
+    targetTime = millis() + 1000;
+    displayMeta();
+    xSemaphoreGive( xSemaphore4tft );
+  }
 
   //pinMode(TFT_LITE, OUTPUT);
   //reset();
@@ -260,8 +266,11 @@ uint16_t EppgDisplay::batt2color(int percentage) {
 }
 
 void EppgDisplay::update() {
-  // update the clock every second
-  displayClock();
+  if( xSemaphoreTake( xSemaphore4tft, ( TickType_t ) 100 ) == pdTRUE ) {
+    // update the clock every second
+    displayClock(); 
+    xSemaphoreGive( xSemaphore4tft );
+  }
 }
 
 void EppgDisplay::displayClock() {
