@@ -102,19 +102,17 @@ void EppgDisplay::reset() {
 }
 
 void EppgDisplay::displayMeta() {
-  //tft.setFont(&FreeSansBold12pt7b);
-  tft.setTextFont(4);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setCursor(25, 30);
+  tft.setFreeFont(&FreeSansBold24pt7b);
+  tft.setCursor(50, 75);
+  tft.setTextColor(TFT_WHITE);
   tft.println("OpenPPG");
-  //tft.setFont();
-  //tft.setTextSize(2);
-  tft.setCursor(60, 60);
+  tft.setTextFont(4);
+  tft.setCursor(120, 120);
   tft.print("v" + String(VERSION_MAJOR) + "." + String(VERSION_MINOR));
 #ifdef RP_PIO
   tft.print("R");
 #endif
-  tft.setCursor(54, 90);
+  tft.setCursor(120, 150);
   displayTime(deviceData.armed_time);
 }
 
@@ -270,6 +268,7 @@ void EppgDisplay::displayClock() {
  if (targetTime < millis()) {
     // Set next update for 1 second later
     targetTime = millis() + 1000;
+    tft.drawFastHLine(0, 25, tft.width(), TFT_WHITE);
 
     // Adjust the time values by adding 1 second
     ss++;              // Advance second
@@ -288,7 +287,7 @@ void EppgDisplay::displayClock() {
 
     // Update digital time
     int xpos = 120;
-    int ypos = 5; // Top left corner ot clock text, about half way down
+    int ypos = 4; // Top left corner ot clock text, about half way down
     int ysecs = ypos + 0;
 
     if (omm != mm) { // Redraw hours and minutes time every minute
@@ -310,7 +309,7 @@ void EppgDisplay::displayClock() {
         tft.setTextColor(0x39C4, TFT_BLACK);        // Set colour to grey to dim colon
         tft.drawChar(':', xcolon, ypos - 2, 2);     // Hour:minute colon
         xpos += tft.drawChar(':', xsecs, ysecs, 2); // Seconds colon
-        tft.setTextColor(TFT_YELLOW, TFT_BLACK);    // Set colour back to yellow
+        tft.setTextColor(TFT_WHITE, TFT_BLACK);    // Set colour back to yellow
       }
       else {
         tft.drawChar(':', xcolon, ypos - 2, 2);     // Hour:minute colon
