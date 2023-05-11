@@ -7,24 +7,16 @@
 #include <Adafruit_ST7735.h>
 
 class EppgDisplay {
-  float           prevBatteryPercent;
   int             page;
   uint16_t        bottom_bg_color;
   bool            screen_wiped;
   bool            batteryFlag;
-  float           prevVolts;
-  float           prevAmps;
   bool            throttledFlag;
   bool            throttled;
   unsigned long   throttledAtMillis;
   unsigned int    throttleSecs;
   float           minutes;
-  float           prevMinutes;
   float           seconds;
-  float           prevSeconds;
-  float           prevKilowatts;
-  float           prevKwh;
-  float           lastAltM;
   float           armAltM;
 
   void     displayMeta();

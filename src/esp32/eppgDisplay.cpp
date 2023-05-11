@@ -44,24 +44,16 @@ void updateDisplayTask(void * param) {
 }
 
 EppgDisplay::EppgDisplay()
-:prevBatteryPercent(0),
- page(0),
+:page(0),
  bottom_bg_color(DEFAULT_BG_COLOR),
  screen_wiped(false),
  batteryFlag(true),
- prevVolts(0),
- prevAmps(0),
  throttledFlag(true),
  throttled(false),
  throttledAtMillis(0),
  throttleSecs(0),
  minutes(0),
- prevMinutes(0),
  seconds(0),
- prevSeconds(0),
- prevKilowatts(0),
- prevKwh(0),
- lastAltM(0),
  armAltM(0) {
 }
 
@@ -148,14 +140,14 @@ void EppgDisplay::displayTime(int val, int x, int y, uint16_t bg_color) {
     tft.setCursor(x, y);
     tft.print("0");
   }
-  dispValue(minutes, prevMinutes, 2, 0, x, y, 2, BLACK, bg_color);
+  dispValue(minutes, minutes, 2, 0, x, y, 2, BLACK, bg_color);
   tft.setCursor(x+24, y);
   tft.print(":");
   tft.setCursor(x+36, y);
   if (seconds < 10) {
     tft.print("0");
   }
-  dispValue(seconds, prevSeconds, 2, 0, x+36, y, 2, BLACK, bg_color);
+  dispValue(seconds, seconds, 2, 0, x+36, y, 2, BLACK, bg_color);
 }
 
 // display hidden page (firmware version and total armed time)
@@ -306,6 +298,7 @@ void EppgDisplay::displayClock() {
         if (hh > 23) { // Check for 24hr roll-over (could roll-over on 13)
           hh = 0;      // 0 for 24 hour clock, set to 1 for 12 hour clock
         }
+    
       }
     }
 
@@ -369,21 +362,20 @@ void EppgDisplay::handleFlightTime() {
 
 // display altitude data on screen
 void EppgDisplay::displayAlt() {
-  float altiudeM = 0;
+  float altitudeM = 0;
   // TODO make MSL explicit?
   if (armAltM > 0 && deviceData.sea_pressure != DEFAULT_SEA_PRESSURE) {  // MSL
-    altiudeM = getAltitudeM();
+    altitudeM = getAltitudeM();
   } else {  // AGL
-    altiudeM = getAltitudeM() - armAltM;
+    altitudeM = getAltitudeM() - armAltM;
   }
 
   // convert to ft if not using metric
-  float alt = deviceData.metric_alt ? altiudeM : (round(altiudeM * 3.28084));
+  float alt = deviceData.metric_alt ? altitudeM : (round(altitudeM * 3.28084));
 
-  dispValue(alt, lastAltM, 5, 0, 70, 102, 2, BLACK, bottom_bg_color);
+  dispValue(alt, alt, 5, 0, 70, 102, 2, BLACK, bottom_bg_color);
 
   tft.print(deviceData.metric_alt ? F("m") : F("ft"));
-  lastAltM = alt;
 }
 
 // display first page (voltage and current)
@@ -391,20 +383,20 @@ void EppgDisplay::displayPage0() {
   float avgVoltage = getBatteryVoltSmoothed();
   STR_ESC_TELEMETRY_140 telemetryData = getTelemetryData();
 
-  dispValue(avgVoltage, prevVolts, 5, 1, 84, 42, 2, BLACK, DEFAULT_BG_COLOR);
+  dispValue(avgVoltage, avgVoltage, 5, 1, 84, 42, 2, BLACK, DEFAULT_BG_COLOR);
   tft.print("V");
 
-  dispValue(telemetryData.amps, prevAmps, 3, 0, 108, 71, 2, BLACK, DEFAULT_BG_COLOR);
+  dispValue(telemetryData.amps, telemetryData.amps, 3, 0, 108, 71, 2, BLACK, DEFAULT_BG_COLOR);
   tft.print("A");
 
   float kWatts = getWatts() / 1000.0;
   kWatts = constrain(kWatts, 0, 50);
 
-  dispValue(kWatts, prevKilowatts, 4, 1, 10, 42, 2, BLACK, DEFAULT_BG_COLOR);
+  dispValue(kWatts, kWatts, 4, 1, 10, 42, 2, BLACK, DEFAULT_BG_COLOR);
   tft.print("kW");
 
   float kwh = getWattHoursUsed() / 1000;
-  dispValue(kwh, prevKwh, 4, 1, 10, 71, 2, BLACK, DEFAULT_BG_COLOR);
+  dispValue(kwh, kwh, 4, 1, 10, 71, 2, BLACK, DEFAULT_BG_COLOR);
   tft.print("kWh");
 
   tft.setCursor(30, 60);
@@ -422,14 +414,14 @@ void EppgDisplay::displayPage0() {
 void EppgDisplay::displayPage1() {
   STR_ESC_TELEMETRY_140 telemetryData = getTelemetryData();
 
-  dispValue(telemetryData.volts, prevVolts, 5, 1, 84, 42, 2, BLACK, DEFAULT_BG_COLOR);
+  dispValue(telemetryData.volts, telemetryData.volts, 5, 1, 84, 42, 2, BLACK, DEFAULT_BG_COLOR);
   tft.print("V");
 
-  dispValue(telemetryData.amps, prevAmps, 3, 0, 108, 71, 2, BLACK, DEFAULT_BG_COLOR);
+  dispValue(telemetryData.amps, telemetryData.amps, 3, 0, 108, 71, 2, BLACK, DEFAULT_BG_COLOR);
   tft.print("A");
 
   float kwh = getWattHoursUsed() / 1000;
-  dispValue(kwh, prevKilowatts, 4, 1, 10, 71, 2, BLACK, DEFAULT_BG_COLOR);
+  dispValue(kwh, kwh, 4, 1, 10, 71, 2, BLACK, DEFAULT_BG_COLOR);
   tft.print("kWh");
 
   tft.setCursor(30, 60);
