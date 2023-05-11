@@ -149,7 +149,7 @@ void EppgThrottle::setArmed(bool enable) {
 }
 
 void EppgThrottle::begin() {
-  xTaskCreate(handleThrottleTask, "handleThrottle", 5000, this, 2, NULL);
+  xTaskCreate(handleThrottleTask, "handleThrottle", 5000, this, 1, NULL);
 }
 
 #endif // EPPG_BLE_HUB

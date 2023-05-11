@@ -185,6 +185,14 @@ float EppgBLEClient::getBmp() {
   return (float)(v.getValue<uint32_t>() / 10.0F);
 }
 
+float EppgBLEClient::getBmsVoltage() {
+  if (!this->isConnected()) {
+    return 0;
+  }
+  NimBLEAttValue v = pClient->getValue(NimBLEUUID(BMS_SERVICE_UUID), NimBLEUUID(BMS_VOLTAGE_CHAR_UUID));
+  return (float)(v.getValue<uint32_t>() / 100.0F);
+}
+
 bool EppgBLEClient::isConnected() {
   return this->connecting ? false : pClient->isConnected();
 }

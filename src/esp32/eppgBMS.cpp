@@ -39,7 +39,7 @@ void EppgBms::begin() {
   SerialBMS.begin(115200, SERIAL_8N1, 3, 1);   
   //SerialBMS.setTimeout(BMS_TIMEOUT);
   bmsDriver.Init();
-  xTaskCreate(handleBmsTask, "handleBms", 5000, this, 1, NULL);
+  xTaskCreate(handleBmsTask, "handleBms", 5000, this, 2, NULL);
 }
 
 void EppgBms::handleBms() {

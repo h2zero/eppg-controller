@@ -3,6 +3,7 @@
 #include "eppgBLE.h"
 
 static NimBLECharacteristic *pBattChr = nullptr;
+static NimBLECharacteristic *pBmsVoltageChr = nullptr;
 static NimBLECharacteristic *pThChr = nullptr;
 static NimBLECharacteristic *pStChr = nullptr;
 static NimBLECharacteristic *pArmChr = nullptr;
@@ -166,6 +167,11 @@ void EppgBLEServer::setBmp(double pressure) {
   pBaroChr->setValue<uint32_t>((pressure + 0.05F) * 10);
 }
 
+void EppgBLEServer::setBmsVoltage(float voltage) {
+  pBmsVoltageChr->setValue<uint32_t>(voltage * 100.0F);
+  pBmsVoltageChr->notify();
+}
+
 void EppgBLEServer::begin() {
   Serial.println("Setting up BLE");
   NimBLEDevice::init("OpenPPG Controller");
@@ -195,6 +201,12 @@ void EppgBLEServer::begin() {
   pBattChr = pBattSvc->createCharacteristic(BATT_CHAR_UUID,
                                             NIMBLE_PROPERTY::READ |
                                             NIMBLE_PROPERTY::NOTIFY, 1);
+
+  NimBLEService *pBmsSvc = pServer->createService(BMS_SERVICE_UUID);
+  pBmsVoltageChr = pBmsSvc->createCharacteristic(BMS_VOLTAGE_CHAR_UUID,
+                                            NIMBLE_PROPERTY::READ |
+                                            NIMBLE_PROPERTY::NOTIFY, 2);
+
 
   NimBLEService *pEnvService = pServer->createService(ENV_SERVICE_UUID);
   pTempChr = pEnvService->createCharacteristic(TEMP_CHAR_UUID, NIMBLE_PROPERTY::READ, 2);
