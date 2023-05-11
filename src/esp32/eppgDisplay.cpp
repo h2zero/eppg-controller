@@ -248,8 +248,6 @@ void EppgDisplay::dispValue(float value, float &prevVal, int maxDigits, int prec
   for(int i=0; i<numDigits; i++){
     tft.print(digit[i]);
   }
-
-  prevVal = value;
 }
 
 // maps battery percentage to a display color
