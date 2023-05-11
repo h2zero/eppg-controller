@@ -10,7 +10,7 @@
 extern STR_DEVICE_DATA_140_V1 deviceData;
 static STR_ESC_TELEMETRY_140 telemetryData;
 
-const STR_BMS_TELEMETRY_140& getBmsData() {
+const STR_ESC_TELEMETRY_140& getBmsData() {
   return telemetryData;
 }
 
@@ -35,8 +35,10 @@ EppgBms::EppgBms()
 }
 
 void EppgBms::begin() {
-  SerialBMS.begin(BMS_BAUD_RATE);
-  SerialBMS.setTimeout(BMS_TIMEOUT);
+  // 3 Tx, 1 RX
+  SerialBMS.begin(115200, SERIAL_8N1, 3, 1);   
+  //SerialBMS.setTimeout(BMS_TIMEOUT);
+  bmsDriver.Init();
   xTaskCreate(handleBmsTask, "handleBms", 5000, this, 1, NULL);
 }
 

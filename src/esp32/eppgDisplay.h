@@ -1,10 +1,9 @@
 #ifndef INC_EPPG_DISPLAY_H_
 #define INC_EPPG_DISPLAY_H_
 
-#include <TFT_eSPI.h>
 
 #ifndef DISPLAY_DISABLED
-#include <Adafruit_ST7735.h>
+#include <TFT_eSPI.h>
 
 class EppgDisplay {
   int             page;

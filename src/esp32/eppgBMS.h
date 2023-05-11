@@ -5,13 +5,14 @@
 #ifdef EPPG_BLE_HUB
 
 #include "../../inc/eppgConfig.h"
+#include <HardwareSerial.h>
 #include <daly-bms-uart.h>
 
 HardwareSerial SerialBMS(2);  // use UART2
 Daly_BMS_UART bmsDriver(SerialBMS);
 
-class EppgBms : public Servo {
-  byte mmsData[BMS_DATA_V2_SIZE];
+class EppgBms {
+  byte bmsData[ESC_DATA_V2_SIZE];
   uint16_t      _volts;
   uint16_t      _temperatureC;
   int16_t       _amps;
@@ -20,9 +21,6 @@ class EppgBms : public Servo {
   uint16_t      _outPWM;
 
   void printDebug();
-  int checkFlectcher16(byte buffer[]);
-  void parseData(byte buffer[]);
-  void printRawSentence();
 
 public:
   EppgBms();

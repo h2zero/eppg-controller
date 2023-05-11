@@ -54,14 +54,6 @@ void setupBleServer() {
   ble.setArmCallback(bleArm);
   ble.setDisarmCallback(bleDisarm);
   ble.begin();
-  setupBms();
-}
-
-void setupBms() {
-  // 3 Tx, 1 RX
-  SerialBMS.begin(115200, SERIAL_8N1, 3, 1);   
-  //SerialBMS.setTimeout(BMS_TIMEOUT);
-  bms.Init();
 }
 
 void bleServerLoop() {
@@ -84,11 +76,6 @@ void bleServerLoop() {
   //ble.setBmp(getPressure()); // Get pressure first to set the temp value.
   //ble.setTemp(getAmbientTempC());
 #endif
-  bms.update();
-  Serial.println("basic BMS Data:   " + (String)bms.get.packVoltage + "V " + (String)bms.get.packCurrent + "I " + (String)bms.get.packSOC + "\% ");
-  Serial.println("Package Temperature:  " + (String)bms.get.tempAverage);
-  Serial.println("BMS Heartbeat:  " + (String)bms.get.bmsHeartBeat); // cycle 0-255
-
   delay(500);
 }
 
