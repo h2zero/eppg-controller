@@ -7,10 +7,6 @@
 #include "eppgPower.h"
 #include "eppgESC.h"
 #include "eppgSensors.h"
-#include <daly-bms-uart.h>
-
-HardwareSerial SerialBMS(2);  // use UART2
-Daly_BMS_UART bms(SerialBMS);
 
 #ifdef BLE_LATENCY_TEST
 latency_test_t ble_lat_test;
