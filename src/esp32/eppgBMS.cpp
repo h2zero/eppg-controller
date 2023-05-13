@@ -8,11 +8,19 @@
 #include "eppgPower.h"
 
 extern STR_DEVICE_DATA_140_V1 deviceData;
-static STR_ESC_TELEMETRY_140 telemetryData;
+extern STR_BMS_DATA bmsData;
 
-const STR_ESC_TELEMETRY_140& getBmsData() {
-  return telemetryData;
+const STR_BMS_DATA& getBmsData() {
+  return bmsData;
 }
+#include <eppgBLE.h>
+
+#ifdef EPPG_BLE_HANDHELD
+extern EppgBLEClient ble;
+#else
+extern EppgBLEServer ble;
+#endif
+
 
 void handleBmsTask(void * param) {
   EppgBms *bms = (EppgBms*)param;
@@ -45,7 +53,8 @@ void EppgBms::begin() {
 void EppgBms::handleBms() {
   Serial.println(F("Handling Bms"));
   bmsDriver.update();
-  telemetryData.volts = bmsDriver.get.packVoltage;
+  printDebug();
+  ble.setBmsPackVoltage(bmsDriver.get.packVoltage);
 }
 
 // for debugging

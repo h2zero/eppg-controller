@@ -30,6 +30,53 @@ typedef struct {
   uint16_t crc;        // error check
 }STR_DEVICE_DATA_140_V1;
 
+
+typedef struct {
+  float packVoltage; // voltage (0.1 V)
+  float packCurrent; // current (0.1 V)
+  float packSOC;     // State Of Charge
+
+  // data from 0x91
+  float maxCellmV; // maximum cell voltage (mV)
+  int maxCellVNum; // Maximum Unit Voltage cell No.
+  float minCellmV; // minimum cell voltage (mV)
+  int minCellVNum; // Minimum Unit Voltage cell No.
+  float cellDiff;  // difference betwen cells
+
+  // data from 0x92
+  int tempMax;       // maximum cell temperature (40 Offset,°C)
+  int tempMin;       // Maximum cell temperature cell No.
+  float tempAverage; // Average Temperature
+
+  // data from 0x93
+  String chargeDischargeStatus; // charge/discharge status (0 stationary ,1 charge ,2 discharge)
+  bool chargeFetState;          // charging MOS tube status
+  bool disChargeFetState;       // discharge MOS tube state
+  int bmsHeartBeat;             // BMS life(0~255 cycles)
+  int resCapacitymAh;           // remaining capacity mAH
+
+  // data from 0x94
+  int numberOfCells;    // amount of cells
+  int numOfTempSensors; // amount of temp sensors
+  bool chargeState;     // charger status 0=disconnected 1=connected
+  bool loadState;       // Load Status 0=disconnected 1=connected
+  bool dIO[8];          // No information about this
+  int bmsCycles;        // charge / discharge cycles
+
+  // data from 0x95
+  float cellVmV[48]; // Store Cell Voltages in mV
+
+  // data from 0x96
+  int cellTemperature[16]; // array of cell Temperature sensors
+
+  // data from 0x97
+  bool cellBalanceState[48]; // bool array of cell balance states
+  bool cellBalanceActive;    // bool is cell balance active
+
+  // debug data string
+  String aDebug;
+}STR_BMS_DATA;
+
 typedef struct {
   uint16_t freq;
   uint16_t duration;

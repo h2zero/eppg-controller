@@ -29,6 +29,7 @@
 
 extern bool armed;
 extern STR_DEVICE_DATA_140_V1 deviceData;
+extern STR_BMS_DATA bmsData;
 extern EppgThrottle throttle;
 
 TFT_eSPI tft = TFT_eSPI();
@@ -275,7 +276,8 @@ void EppgDisplay::displayDiagnostics(){
   tft.println("Diagnostics Mode");
   tft.setTextFont(2);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.println("Hello World!");
+  tft.print("Voltage: ");
+  tft.println(bmsData.packVoltage);
 }
 
 void EppgDisplay::displayClock() {

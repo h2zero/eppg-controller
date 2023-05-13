@@ -185,7 +185,7 @@ float EppgBLEClient::getBmp() {
   return (float)(v.getValue<uint32_t>() / 10.0F);
 }
 
-float EppgBLEClient::getBmsVoltage() {
+float EppgBLEClient::getBmsPackVoltage() {
   if (!this->isConnected()) {
     return 0;
   }

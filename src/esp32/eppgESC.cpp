@@ -1,4 +1,4 @@
-#ifndef ESC_TELEM_DISABLED
+#ifdef EPPG_BLE_HUB
 
 #include <Arduino.h>
 #include "eppgESC.h"
@@ -48,6 +48,7 @@ void EppgEsc::serialRead() {  // TODO needed?
 
 void EppgEsc::handleTelemetry() {
   Serial.println(F("Handling Telemetry"));
+  return; // TODO remove
   serialRead();
   SerialESC.readBytes(escData, ESC_DATA_V2_SIZE);
   parseData(escData);

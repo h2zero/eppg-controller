@@ -167,7 +167,7 @@ void EppgBLEServer::setBmp(double pressure) {
   pBaroChr->setValue<uint32_t>((pressure + 0.05F) * 10);
 }
 
-void EppgBLEServer::setBmsVoltage(float voltage) {
+void EppgBLEServer::setBmsPackVoltage(float voltage) {
   pBmsVoltageChr->setValue<uint32_t>(voltage * 100.0F);
   pBmsVoltageChr->notify();
 }

@@ -34,9 +34,6 @@ public:
   void begin() {}
   void handleBms() {}
   void printRawSentence() {}
-  bool attach(int pin) { (void)pin; return false; }
-  void writeMicroseconds(int pulseUs) {}
-};
 #endif // EPPG_BLE_HUB
 #endif // BMS_TELEM_DISABLED
 #endif // INC_EPPG_BMS_H_

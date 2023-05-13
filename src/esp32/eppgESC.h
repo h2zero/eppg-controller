@@ -4,9 +4,8 @@
 #ifndef ESC_TELEM_DISABLED
 
 #include "../../inc/eppgConfig.h"
-#include <Servo.h>
 
-class EppgEsc : public Servo {
+class EppgEsc {
   byte escData[ESC_DATA_V2_SIZE];
   uint16_t      _volts;
   uint16_t      _temperatureC;
@@ -32,8 +31,6 @@ public:
   void begin() {}
   void handleTelemetry() {}
   void printRawSentence() {}
-  bool attach(int pin) { (void)pin; return false; }
-  void writeMicroseconds(int pulseUs) {}
 };
 
 #endif // ESC_TELEM_DISABLED

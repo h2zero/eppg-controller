@@ -67,7 +67,7 @@ public:
   void setBattery(uint8_t val);
   void setTemp(double temp);
   void setBmp(double pressure);
-  void setBmsVoltage(float voltage);
+  void setBmsPackVoltage(float voltage);
 };
 
 class EppgBLEClient {
@@ -96,7 +96,7 @@ public:
   bool disarm();
   float getBmp();
   float getTemp();
-  float getBmsVoltage();
+  float getBmsPackVoltage();
 };
 
 #endif // _EPPG_BLE_H

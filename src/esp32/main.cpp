@@ -41,6 +41,7 @@ EppgDisplay display;
 #endif
 
 STR_DEVICE_DATA_140_V1 deviceData;
+STR_BMS_DATA bmsData;
 bool armed = false;
 
 #pragma message "Warning: OpenPPG software is in beta"
