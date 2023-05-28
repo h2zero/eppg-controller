@@ -185,12 +185,13 @@ float EppgBLEClient::getBmp() {
   return (float)(v.getValue<uint32_t>() / 10.0F);
 }
 
-float EppgBLEClient::getBmsPackVoltage() {
-  if (!this->isConnected()) {
-    return 0;
+const STR_BMS_DATA& EppgBLEClient::getBmsData() {
+  if (this->isConnected()) {
+    NimBLEAttValue v = pClient->getValue(NimBLEUUID(BMS_SERVICE_UUID), NimBLEUUID(BMS_CHAR_UUID));
+    m_bmsData = v.getValue<STR_BMS_DATA>();
   }
-  NimBLEAttValue v = pClient->getValue(NimBLEUUID(BMS_SERVICE_UUID), NimBLEUUID(BMS_VOLTAGE_CHAR_UUID));
-  return (float)(v.getValue<uint32_t>() / 100.0F);
+
+  return m_bmsData;
 }
 
 bool EppgBLEClient::isConnected() {

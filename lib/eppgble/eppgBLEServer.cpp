@@ -3,7 +3,7 @@
 #include "eppgBLE.h"
 
 static NimBLECharacteristic *pBattChr = nullptr;
-static NimBLECharacteristic *pBmsVoltageChr = nullptr;
+static NimBLECharacteristic *pBmsChr = nullptr;
 static NimBLECharacteristic *pThChr = nullptr;
 static NimBLECharacteristic *pStChr = nullptr;
 static NimBLECharacteristic *pArmChr = nullptr;
@@ -167,9 +167,8 @@ void EppgBLEServer::setBmp(double pressure) {
   pBaroChr->setValue<uint32_t>((pressure + 0.05F) * 10);
 }
 
-void EppgBLEServer::setBmsPackVoltage(float voltage) {
-  pBmsVoltageChr->setValue<uint32_t>(voltage * 100.0F);
-  pBmsVoltageChr->notify();
+void EppgBLEServer::setBmsData(STR_BMS_DATA &data) {
+  pBmsChr->setValue(data);
 }
 
 void EppgBLEServer::begin() {
@@ -203,9 +202,9 @@ void EppgBLEServer::begin() {
                                             NIMBLE_PROPERTY::NOTIFY, 1);
 
   NimBLEService *pBmsSvc = pServer->createService(BMS_SERVICE_UUID);
-  pBmsVoltageChr = pBmsSvc->createCharacteristic(BMS_VOLTAGE_CHAR_UUID,
-                                            NIMBLE_PROPERTY::READ |
-                                            NIMBLE_PROPERTY::NOTIFY, 2);
+  pBmsChr = pBmsSvc->createCharacteristic(BMS_CHAR_UUID,
+                                          NIMBLE_PROPERTY::READ |
+                                          NIMBLE_PROPERTY::NOTIFY);
 
 
   NimBLEService *pEnvService = pServer->createService(ENV_SERVICE_UUID);

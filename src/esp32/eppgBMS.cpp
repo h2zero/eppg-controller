@@ -44,7 +44,7 @@ EppgBms::EppgBms()
 
 void EppgBms::begin() {
   // 3 Tx, 1 RX
-  SerialBMS.begin(115200, SERIAL_8N1, 3, 1);   
+  SerialBMS.begin(115200, SERIAL_8N1, 3, 1);
   //SerialBMS.setTimeout(BMS_TIMEOUT);
   bmsDriver.Init();
   xTaskCreate(handleBmsTask, "handleBms", 5000, this, 2, NULL);
@@ -54,7 +54,7 @@ void EppgBms::handleBms() {
   Serial.println(F("Handling Bms"));
   bmsDriver.update();
   printDebug();
-  ble.setBmsPackVoltage(bmsDriver.get.packVoltage);
+  ble.setBmsData(*(STR_BMS_DATA*)&bmsDriver.get);
 }
 
 // for debugging

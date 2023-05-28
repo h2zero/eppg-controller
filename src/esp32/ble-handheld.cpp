@@ -64,6 +64,7 @@ void bleClientLoop() {
     disarmSystem();
   }
   Serial.printf("Temp: %f, pressure %f\n", ble.getTemp(), ble.getBmp());
+  Serial.printf("Pack voltage: %.2f\n", ble.getBmsData().packVoltage);
   delay(500);
 #endif
 }

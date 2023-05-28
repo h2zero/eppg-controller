@@ -23,6 +23,9 @@ public:
   EppgEsc();
   void begin();
   void handleTelemetry();
+  // Fix build, TODO: REMOVE
+  bool attach(int pin) { (void)pin; return false; }
+  void writeMicroseconds(int pulseUs) {}
 };
 
 #else
