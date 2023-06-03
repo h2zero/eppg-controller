@@ -10,8 +10,6 @@ const char* const MAIN_SERVICE_UUID = "8877FB19-E00B-40BE-905E-ACB42C39E6B8";
 const char* const TH_CHAR_UUID = "5A57F691-C0B9-45DD-BDF1-279681212C29";
 const char* const STATUS_CHAR_UUID = "28913A56-5701-4B27-85DB-50985F224847";
 const char* const ARM_CHAR_UUID = "aeb83642-7cc4-45e9-bdf9-c9450876d98d";
-const char* const BMS_SERVICE_UUID = "6306b50e-0076-4b9f-8510-b713224cb721";
-const char* const BMS_CHAR_UUID = "f959c00b-1cf0-41db-a0c1-4843106bb905";
 
 /* BLE standard UUID's */
 const char* const BATT_SERVICE_UUID = "180F";
@@ -68,7 +66,6 @@ public:
   void setBattery(uint8_t val);
   void setTemp(double temp);
   void setBmp(double pressure);
-  void setBmsData(STR_BMS_DATA &data);
 };
 
 class EppgBLEClient {
@@ -80,7 +77,6 @@ class EppgBLEClient {
   disconnectCallback disconnectCB;
   statusCallback     statusCB;
   batteryCallback    batteryCB;
-  STR_BMS_DATA       m_bmsData;
   bool               connecting;
 public:
   void begin();
@@ -98,7 +94,6 @@ public:
   bool disarm();
   float getBmp();
   float getTemp();
-  const STR_BMS_DATA & getBmsData();
 };
 
 #endif // _EPPG_BLE_H

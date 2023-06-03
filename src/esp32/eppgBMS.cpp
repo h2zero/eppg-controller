@@ -10,9 +10,6 @@
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern STR_BMS_DATA bmsData;
 
-const STR_BMS_DATA& getBmsData() {
-  return bmsData;
-}
 #include <eppgBLE.h>
 
 #ifdef EPPG_BLE_HANDHELD
@@ -47,14 +44,14 @@ void EppgBms::begin() {
   SerialBMS.begin(115200, SERIAL_8N1, 3, 1);
   //SerialBMS.setTimeout(BMS_TIMEOUT);
   bmsDriver.Init();
-  xTaskCreate(handleBmsTask, "handleBms", 5000, this, 2, NULL);
+  //xTaskCreate(handleBmsTask, "handleBms", 5000, this, 2, NULL);
 }
 
 void EppgBms::handleBms() {
   Serial.println(F("Handling Bms"));
   bmsDriver.update();
   printDebug();
-  ble.setBmsData(*(STR_BMS_DATA*)&bmsDriver.get);
+  //ble.setBmsData(*(STR_BMS_DATA*)&bmsDriver.get);
 }
 
 // for debugging

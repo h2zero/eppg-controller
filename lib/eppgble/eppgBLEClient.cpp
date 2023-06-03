@@ -185,15 +185,6 @@ float EppgBLEClient::getBmp() {
   return (float)(v.getValue<uint32_t>() / 10.0F);
 }
 
-const STR_BMS_DATA& EppgBLEClient::getBmsData() {
-  if (this->isConnected()) {
-    NimBLEAttValue v = pClient->getValue(NimBLEUUID(BMS_SERVICE_UUID), NimBLEUUID(BMS_CHAR_UUID));
-    m_bmsData = v.getValue<STR_BMS_DATA>();
-  }
-
-  return m_bmsData;
-}
-
 bool EppgBLEClient::isConnected() {
   return this->connecting ? false : pClient->isConnected();
 }
