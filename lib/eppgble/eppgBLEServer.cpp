@@ -213,6 +213,7 @@ void EppgBLEServer::begin() {
 
   pMainSvc->start();
   pBattSvc->start();
+  pBmsSvc->start();
   pEnvService->start();
 
   NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();

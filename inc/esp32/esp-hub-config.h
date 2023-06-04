@@ -9,7 +9,7 @@
 #define BUZZER_PIN    4   // output for buzzer speaker
 #define LED_SW        18  // output for LED
 
-#define SerialESC  Serial0  // ESC UART connection
+#define SerialESC  Serial1  // ESC UART connection
 
 // SP140
 #define ESC_PIN 5
