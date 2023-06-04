@@ -16,6 +16,7 @@
 #include "ble-handheld.h"        // BLE
 #include "ble-hub.h"
 #include "eppgESC.h"
+#include "eppgBMS.h"
 #include "eppgDisplay.h"
 #include "eppgStorage.h"
 #include "eppgButtons.h"
@@ -34,6 +35,7 @@
 #ifdef EPPG_BLE_HUB
 EppgBLEServer ble;
 EppgEsc esc;  // Creating a servo class with name of esc
+EppgBms bms; 
 #elif EPPG_BLE_HANDHELD
 EppgBLEClient ble;
 EppgThrottle throttle;
@@ -56,6 +58,8 @@ void setup() {
 
 #if defined(EPPG_BLE_HUB)
   esc.begin();
+  bms.begin();
+
   // initBmp(); // ideally call init sensors
   setupBleServer();
 #endif
