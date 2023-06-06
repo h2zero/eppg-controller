@@ -8,9 +8,6 @@
 #include <HardwareSerial.h>
 #include <daly-bms-uart.h>
 
-HardwareSerial SerialBMS(2);  // use UART2
-Daly_BMS_UART bmsDriver(SerialBMS);
-
 class EppgBms {
   byte bmsData[ESC_DATA_V2_SIZE];
   uint16_t      _volts;

@@ -19,6 +19,8 @@ const STR_BMS_DATA& getBmsData() {
 extern EppgBLEClient ble;
 #else
 extern EppgBLEServer ble;
+HardwareSerial SerialBMS(2);  // use UART2
+Daly_BMS_UART bmsDriver(SerialBMS);
 #endif
 
 
