@@ -14,6 +14,7 @@ uint32_t disconnect_count;
 
 extern EppgBLEClient ble;
 extern bool armed;
+extern STR_BMS_DATA bmsData;
 static STR_ESC_TELEMETRY_140 telemetryData;
 
 void bleConnected(){Serial.println("Connected to server");}
@@ -63,7 +64,26 @@ void bleClientLoop() {
   } else {
     disarmSystem();
   }
+  bmsData = ble.getBmsData();
   Serial.printf("Temp: %f, pressure %f\n", ble.getTemp(), ble.getBmp());
+  Serial.printf("Pack voltage: %.2f\n", bmsData.packVoltage);
+  Serial.printf("Pack current: %.2f\n", bmsData.packCurrent);
+  Serial.printf("Pack packSOC: %.2f\n", bmsData.packSOC);
+  Serial.printf("maxCellmV: %.2f\n", bmsData.maxCellmV);
+  Serial.printf("maxCellVNum: %d\n", bmsData.maxCellVNum);
+  Serial.printf("minCellmV: %.2f\n", bmsData.minCellmV);
+  Serial.printf("minCellVNum: %d\n", bmsData.minCellVNum);
+  Serial.printf("cellDiff: %.2f\n", bmsData.cellDiff);
+  Serial.printf("tempMax: %d\n", bmsData.tempMax);
+  Serial.printf("tempMin: %d\n", bmsData.tempMin);
+  Serial.printf("tempAverage: %.2f\n", bmsData.tempAverage);
+  Serial.printf("chargeFetState: %u\n", bmsData.chargeFetState);
+  Serial.printf("resCapacitymAh: %d\n", bmsData.resCapacitymAh);
+  Serial.printf("numberOfCells: %d\n", bmsData.numberOfCells);
+  Serial.printf("chargeState: %u\n", bmsData.chargeState);
+  Serial.printf("loadState: %u\n", bmsData.loadState);
+  Serial.printf("bmsCycles: %d\n", bmsData.bmsCycles);
+  delay(1000);
 #endif
 
   Serial.print("Pack voltage: ");

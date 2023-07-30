@@ -31,12 +31,14 @@ float getPressure() {
     return 0.0;
   }
   return bmp.pressure; // /100 for hPa
+#else
+  return 0;
 #endif
 }
 
 #define SEALEVELPRESSURE_HPA (1013.25)
 // convert barometer data to altitude in meters
-float getAltitudeM() { 
+float getAltitudeM() {
 #ifdef EPPG_BLE_HANDHELD // Only should be called in handheld
   float atmospheric = ble.getBmp() / 100.0F;
   float altitudeM = 44330.0 * (1.0 - pow(atmospheric / deviceData.sea_pressure, 0.1903));

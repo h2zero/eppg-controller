@@ -35,7 +35,7 @@ void handleBmsTask(void * param) {
 }
 
 EppgBms::EppgBms()
-: bmsData{0},
+: /*bmsData{0},*/
   _volts(0),
   _temperatureC(0),
   _amps(0),
@@ -55,8 +55,26 @@ void EppgBms::begin() {
 void EppgBms::handleBms() {
   Serial.println(F("Handling Bms"));
   bmsDriver.update();
+  bmsData.packVoltage = bmsDriver.get.packVoltage;
+  bmsData.packCurrent = bmsDriver.get.packCurrent;
+  bmsData.packSOC = bmsDriver.get.packSOC;
+  bmsData.maxCellmV = bmsDriver.get.maxCellmV;
+  bmsData.maxCellVNum = bmsDriver.get.maxCellVNum;
+  bmsData.minCellmV = bmsDriver.get.minCellmV;
+  bmsData.minCellVNum = bmsDriver.get.minCellVNum;
+  bmsData.cellDiff = bmsDriver.get.cellDiff;
+  bmsData.tempMax = bmsDriver.get.tempMax;
+  bmsData.tempMin = bmsDriver.get.tempMin;
+  bmsData.tempAverage = bmsDriver.get.tempAverage;
+  bmsData.chargeFetState = bmsDriver.get.chargeFetState;
+  bmsData.resCapacitymAh = bmsDriver.get.resCapacitymAh;
+  bmsData.numberOfCells = bmsDriver.get.numberOfCells;
+  bmsData.numOfTempSensors = bmsDriver.get.numOfTempSensors;
+  bmsData.chargeState = bmsDriver.get.chargeState;
+  bmsData.loadState = bmsDriver.get.loadState;
+  bmsData.bmsCycles = bmsDriver.get.bmsCycles;
+  ble.setBmsData(bmsData);
   printDebug();
-  ble.setBmsData(*(STR_BMS_DATA*)&bmsDriver.get);
 }
 
 // for debugging
