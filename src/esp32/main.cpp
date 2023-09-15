@@ -76,7 +76,7 @@ void setup() {
   setupBleClient();
   //display.init();
   //initLEDs();
-  //throttle.begin();
+  throttle.begin();
   //modeSwitch();
 #endif
 }

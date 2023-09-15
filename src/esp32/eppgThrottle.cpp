@@ -53,10 +53,7 @@ void EppgThrottle::setPWM(float val) {
 // read throttle and send to hub
 // read throttle
 void EppgThrottle::handleThrottle() {
-  if (!armed) return;  // safe
-
-  armedSecs = (millis() - armedAtMilis) / 1000;  // update time while armed
-
+  //TODO remove: if (!armed) return;  // safe
   static int maxPWM = ESC_MAX_PWM;
 #ifdef BLE_TEST
   int potRaw = random(0, 4095);
@@ -65,48 +62,14 @@ void EppgThrottle::handleThrottle() {
   int potRaw = pot.getValue();
 #endif
 
-  if (cruising) {
-    unsigned long cruisingSecs = (millis() - cruisedAtMilis) / 1000;
-
-    if (cruisingSecs >= CRUISE_GRACE && potRaw > POT_SAFE_LEVEL) {
-      removeCruise(true);  // deactivate cruise
-    } else {
-      throttlePWM = mapd(cruisedPotVal, 0, 4095, ESC_MIN_PWM, maxPWM);
-    }
-  } else {
-    // no need to save & smooth throttle etc when in cruise mode (& pot == 0)
-    potBuffer.push(potRaw);
-
-    int potLvl = 0;
-    for (decltype(potBuffer)::index_t i = 0; i < potBuffer.size(); i++) {
-      potLvl += potBuffer[i] / potBuffer.size();  // avg
-    }
-
-  // runs ~40x sec
-  // 1000 diff in pwm from 0
-  // 1000/6/40
-    if (deviceData.performance_mode == 0) {  // chill mode
-      potLvl = limitedThrottle(potLvl, prevPotLvl, 50);
-      maxPWM = 1850;  // 85% interpolated from 1030 to 1990
-    } else {
-      potLvl = limitedThrottle(potLvl, prevPotLvl, 120);
-      maxPWM = ESC_MAX_PWM;
-    }
-    Serial.printf("Pot: %d, Throttle: %d\n", potLvl, throttlePWM);
-    // mapping val to min and max pwm
-    throttlePWM = mapd(potLvl, 0, 4095, ESC_MIN_PWM, maxPWM);
-  }
+throttlePWM = mapd(potRaw, 0, 4095, ESC_MIN_PWM, maxPWM);
+Serial.printf("potRaw: %d, throttlePWM: %f\n", potRaw, throttlePWM);
 
 #ifdef EPPG_BLE_HANDHELD
-  #ifdef BLE_TEST
-  Serial.printf("Set throttle: %d, %s\n", (int)throttlePWM,
-                ble.setThrottle(throttlePWM) ? "success" : "failed");
-  #else
   // TODO: consider not sending the data if unchanged.
   ble.setThrottle(throttlePWM);
-  #endif
 #else
-  esc.writeMicroseconds(throttlePWM);  // using val as the signal to esc
+  //esc.writeMicroseconds(throttlePWM);  // using val as the signal to esc
 #endif
 }
 
