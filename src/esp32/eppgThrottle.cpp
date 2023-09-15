@@ -92,6 +92,7 @@ void EppgThrottle::handleThrottle() {
       potLvl = limitedThrottle(potLvl, prevPotLvl, 120);
       maxPWM = ESC_MAX_PWM;
     }
+    Serial.printf("Pot: %d, Throttle: %d\n", potLvl, throttlePWM);
     // mapping val to min and max pwm
     throttlePWM = mapd(potLvl, 0, 4095, ESC_MIN_PWM, maxPWM);
   }
