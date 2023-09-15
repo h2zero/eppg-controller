@@ -35,7 +35,7 @@
 #ifdef EPPG_BLE_HUB
 EppgBLEServer ble;
 EppgEsc esc;  // Creating a servo class with name of esc
-EppgBms bms; 
+EppgBms bms;
 #elif EPPG_BLE_HANDHELD
 EppgBLEClient ble;
 EppgThrottle throttle;
@@ -70,13 +70,13 @@ void setup() {
   analogReadResolution(12);
 
   initButtons();
-  EEPROM.begin(512);
-  refreshDeviceData();
+  //EEPROM.begin(512);
+  //refreshDeviceData();
 
   setupBleClient();
-  display.init();
-  initLEDs();
-  throttle.begin();
+  //display.init();
+  //initLEDs();
+  //throttle.begin();
   //modeSwitch();
 #endif
 }
@@ -94,7 +94,7 @@ void loop() {
 
 #ifdef EPPG_BLE_HANDHELD
   bleClientLoop();
-  display.update();
+  //display.update();
 #endif
 }
 
