@@ -20,8 +20,9 @@ extern STR_BMS_DATA bmsData;
 void bleConnected(){Serial.println("Client Connected");}
 void bleDisconnected() {Serial.println("Client Disconnected");}
 void bleThrottleUpdate(int val) {
-#ifdef BLE_TEST
   Serial.printf("Updated Throttle: %d\n", val);
+
+#ifdef BLE_TEST
 #else
   esc.writeMicroseconds(val);
 #endif
