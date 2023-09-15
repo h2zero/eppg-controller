@@ -58,7 +58,7 @@ void setup() {
 
 #if defined(EPPG_BLE_HUB)
   esc.begin();
-  bms.begin();
+  //bms.begin();
 
   // initBmp(); // ideally call init sensors
   setupBleServer();
