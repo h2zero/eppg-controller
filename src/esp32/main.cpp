@@ -102,7 +102,7 @@ void loop() {
 bool disarmSystem() {
 #if !defined(EPPG_BLE_HANDHELD)
   armed = false;
-  esc.writeMicroseconds(ESC_DISARMED_PWM);
+  
 #else
   throttle.setPWM(ESC_DISARMED_PWM);
   armed = !ble.disarm();
@@ -142,7 +142,7 @@ void handleArmFail() {
 bool armSystem() {
 #if !defined(EPPG_BLE_HANDHELD)
   armed = true;
-  esc.writeMicroseconds(ESC_DISARMED_PWM);  // initialize the signal to low
+  //esc.writeMicroseconds(ESC_DISARMED_PWM);  // initialize the signal to low
 #else
   armed = ble.arm();
   Serial.printf("Arm: %s\n", armed ? "success" : "failed");

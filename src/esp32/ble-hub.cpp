@@ -8,31 +8,29 @@
 #include "eppgESC.h"
 #include "eppgSensors.h"
 #include "eppgBMS.h"
+#include <Servo.h>
 
 #ifdef BLE_LATENCY_TEST
 latency_test_t ble_lat_test;
 #endif
 
 extern EppgBLEServer ble;
-extern EppgEsc esc;
+//extern EppgEsc esc;
 extern STR_BMS_DATA bmsData;
+Servo escpwm;
 
 void bleConnected(){Serial.println("Client Connected");}
 void bleDisconnected() {Serial.println("Client Disconnected");}
 void bleThrottleUpdate(int val) {
   Serial.printf("Updated Throttle: %d\n", val);
-
-#ifdef BLE_TEST
-#else
-  esc.writeMicroseconds(val);
-#endif
+  escpwm.writeMicroseconds(val);
 }
 
 void bleArm() {
 #ifdef BLE_TEST
   Serial.println("Armed from BLE");
 #else
-  esc.writeMicroseconds(ESC_DISARMED_PWM);
+  escpwm.writeMicroseconds(ESC_DISARMED_PWM);
 #endif
 }
 
@@ -40,16 +38,16 @@ void bleDisarm() {
 #ifdef BLE_TEST
   Serial.println("Disarmed from BLE");
 #else
-  esc.writeMicroseconds(ESC_DISARMED_PWM);
+  escpwm.writeMicroseconds(ESC_DISARMED_PWM);
 #endif
 }
 
 void setupBleServer() {
   SerialESC.begin(ESC_BAUD_RATE);
   SerialESC.setTimeout(ESC_TIMEOUT);
-
-  esc.attach(ESC_PIN);
-  esc.writeMicroseconds(ESC_DISARMED_PWM);
+  
+  escpwm.attach(ESC_PIN);
+  escpwm.writeMicroseconds(ESC_DISARMED_PWM);
 
   ble.setConnectCallback(bleConnected);
   ble.setDisconnectCallback(bleDisconnected);

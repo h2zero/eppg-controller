@@ -4,7 +4,6 @@
 #ifndef ESC_TELEM_DISABLED
 
 #include "../../inc/eppgConfig.h"
-
 class EppgEsc {
   byte escData[ESC_DATA_V2_SIZE];
   uint16_t      _volts;
@@ -24,8 +23,8 @@ public:
   void begin();
   void handleTelemetry();
   // Fix build, TODO: REMOVE
-  bool attach(int pin) { (void)pin; return false; }
-  void writeMicroseconds(int pulseUs) {}
+  // bool attach(int pin) { (void)pin; return false; }
+  // void writeMicroseconds(int pulseUs) {}
 };
 
 #else

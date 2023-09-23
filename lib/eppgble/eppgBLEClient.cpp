@@ -93,7 +93,7 @@ void clientTask(void * parameter) {
   for(;;) {
     unsigned long event;
     if(xQueueReceive( bleQueue, &event, pdMS_TO_TICKS(1000)) == pdPASS) {
-      Serial.printf("proc evt: %u\n", event);
+      //Serial.printf("proc evt: %u\n", event);
       eppg->processEvent(event);
     } else {
       if (!eppg->isConnected() && !eppg->isConnecting() &&
