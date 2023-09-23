@@ -22,7 +22,21 @@ static AceButton button_top(BUTTON_TOP);
 static ButtonConfig* buttonConfig = button_top.getButtonConfig();
 
 void checkButtons(xTimerHandle pxTimer) {
-  button_top.check();
+  Serial.println("button check");
+
+  //button_top.check();
+  int armSwitchPin = 4;
+  if (digitalRead(armSwitchPin) == HIGH) {
+    if (throttle.safe()) {
+      Serial.println("Armed from switch");
+      armSystem();
+    } else {
+      handleArmFail();
+    }
+  } else { 
+    // Serial.println("Disarmed from switch");
+    disarmSystem();
+  }
 }
 
 // The event handler for the the buttons
