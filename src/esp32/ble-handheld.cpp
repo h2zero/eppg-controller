@@ -14,6 +14,7 @@ uint32_t disconnect_count;
 
 extern EppgBLEClient ble;
 extern bool armed;
+extern bool hub_armed;
 extern STR_BMS_DATA bmsData;
 static STR_ESC_TELEMETRY_140 telemetryData;
 
@@ -86,8 +87,8 @@ void bleClientLoop() {
   delay(1000);
 #endif
 
-  Serial.print("Pack voltage: ");
-  Serial.println(ble.getBmsData().packVoltage);
+  //Serial.print("Pack voltage: ");
+  //Serial.println(ble.getBmsData().packVoltage);
   delay(500);
 }
 

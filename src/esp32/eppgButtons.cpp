@@ -13,6 +13,7 @@
 using namespace ace_button;
 
 extern bool armed;
+extern bool hub_armed;
 extern bool cruising;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern EppgThrottle throttle;
@@ -25,18 +26,6 @@ void checkButtons(xTimerHandle pxTimer) {
   Serial.println("button check");
 
   //button_top.check();
-  int armSwitchPin = 4;
-  if (digitalRead(armSwitchPin) == HIGH) {
-    if (throttle.safe()) {
-      Serial.println("Armed from switch");
-      armSystem();
-    } else {
-      handleArmFail();
-    }
-  } else { 
-    // Serial.println("Disarmed from switch");
-    disarmSystem();
-  }
 }
 
 // The event handler for the the buttons

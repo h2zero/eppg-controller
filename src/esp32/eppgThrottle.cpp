@@ -12,12 +12,13 @@
 #include <eppgBLE.h>
 extern EppgBLEClient ble;
 #else
-#include "eppgESC.h"
-extern EppgEsc esc;
+//#include "eppgESC.h"
+//extern EppgEsc esc;
 #endif
 
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern bool armed;
+extern bool hub_armed;
 
 void handleThrottleTask(void * param) {
   EppgThrottle *throttle = (EppgThrottle*)param;
@@ -26,7 +27,7 @@ void handleThrottleTask(void * param) {
 #ifdef BLE_TEST
     delay(100);
 #else
-    delay(22); // Update throttle every 22ms
+    delay(50); // Update throttle every 22ms //TODO set to 22
 #endif
   }
 
@@ -53,7 +54,6 @@ void EppgThrottle::setPWM(float val) {
 // read throttle and send to hub
 // read throttle
 void EppgThrottle::handleThrottle() {
-  //TODO remove: if (!armed) return;  // safe
   static int maxPWM = ESC_MAX_PWM;
 #ifdef BLE_TEST
   int potRaw = random(0, 4095);
@@ -62,8 +62,12 @@ void EppgThrottle::handleThrottle() {
   int potRaw = pot.getValue();
 #endif
 
+Serial.printf("potRaw: %d \n", potRaw);
+
+if (!armed) return;  // safe
+
 throttlePWM = mapd(potRaw, 0, 4095, ESC_MIN_PWM, maxPWM);
-Serial.printf("potRaw: %d, throttlePWM: %f\n", potRaw, throttlePWM);
+//Serial.printf("throttlePWM: %f\n", throttlePWM);
 
 #ifdef EPPG_BLE_HANDHELD
   // TODO: consider not sending the data if unchanged.

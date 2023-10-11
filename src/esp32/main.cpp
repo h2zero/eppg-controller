@@ -19,7 +19,7 @@
 #include "eppgBMS.h"
 #include "eppgDisplay.h"
 #include "eppgStorage.h"
-#include "eppgButtons.h"
+//#include "eppgButtons.h"
 #include "eppgUtils.h"
 #include "eppgBuzzer.h"
 #include "eppgThrottle.h"
@@ -45,6 +45,7 @@ EppgDisplay display;
 STR_DEVICE_DATA_140_V1 deviceData;
 STR_BMS_DATA bmsData;
 bool armed = false;
+bool hub_armed = false;
 
 #pragma message "Warning: OpenPPG software is in beta"
 
@@ -66,10 +67,11 @@ void setup() {
 
 #if defined(EPPG_BLE_HANDHELD)
   pinMode(LED_SW, OUTPUT);
+  pinMode(ARM_SW, INPUT_PULLUP);
 
   analogReadResolution(12);
 
-  initButtons();
+  //initButtons();
   //EEPROM.begin(512);
   //refreshDeviceData();
 
@@ -95,73 +97,65 @@ void loop() {
 #ifdef EPPG_BLE_HANDHELD
   bleClientLoop();
   //display.update();
+  int armSwitchState = digitalRead(ARM_SW);
+  Serial.printf("Arm switch: %d\n", armSwitchState);
+  if (armSwitchState == HIGH && !armed) {
+    if (throttle.safe()) {
+      Serial.println("Armed from switch");
+      armSystem();
+    } else {
+      //handleArmFail();
+    }
+  } else if (armSwitchState == LOW) {
+    //armed = false;
+    // Serial.println("Disarmed from switch");
+    disarmSystem();
+  }
+  Serial.printf("Armed: %d\n", armed);
+  delay(200);
+
 #endif
 }
 
 // disarm, remove cruise, alert, save updated stats
 bool disarmSystem() {
-#if !defined(EPPG_BLE_HANDHELD)
   armed = false;
-  
+  Serial.println("Disarmed");
+
+#if defined(EPPG_BLE_HANDHELD)
+  //armed = false;
+  hub_armed = ble.disarm();
+
 #else
-  throttle.setPWM(ESC_DISARMED_PWM);
-  armed = !ble.disarm();
-  Serial.printf("Disarm: %s\n", !armed ? "success" : "failed");
-  if (armed) {
-    handleArmFail();
-    return false;
-  }
-
-  throttle.setArmed(armed);
-  removeCruise(false);
-  startBlinkTimer();
-
-  #ifndef BLE_TEST
-  u_int16_t disarm_melody[] = { 2093, 1976, 880 };
-  unsigned int disarm_vibes[] = { 100, 0 };
-  runVibe(disarm_vibes, 3);
-  playMelody(disarm_melody, 3);
-  display.displayDisarm();
-  // update armed_time
-  refreshDeviceData();
-  deviceData.armed_time += round(throttle.getArmedSeconds() / 60);  // convert to mins
-  writeDeviceData();
-  #endif
-
-  delay(1000);  // TODO just disable button thread // dont allow immediate rearming
-#endif // !defined(EPPG_BLE_HANDHELD)
+#endif
   return true;
 }
 
 void handleArmFail() {
-  uint16_t arm_fail_melody[] = { 820, 640 };
-  playMelody(arm_fail_melody, 2);
+  Serial.println("Arm failed");
+  //uint16_t arm_fail_melody[] = { 820, 640 };
+  //playMelody(arm_fail_melody, 2);
 }
 
 // get the PPG ready to fly
 bool armSystem() {
-#if !defined(EPPG_BLE_HANDHELD)
+  Serial.println("Arming");
   armed = true;
+
+#if !defined(EPPG_BLE_HANDHELD)
   //esc.writeMicroseconds(ESC_DISARMED_PWM);  // initialize the signal to low
 #else
-  armed = ble.arm();
+  hub_armed = ble.arm();
   Serial.printf("Arm: %s\n", armed ? "success" : "failed");
-  if (!armed) {
-    handleArmFail();
-    return false;
-  }
-
-  throttle.setArmed(armed);
-  stopBlinkTimer();
+  // if (!hub_armed) {
+  //   //handleArmFail();
+  //   return false;
+  // }
+  // throttle.setArmed(armed);
+  //stopBlinkTimer();
 
   #ifndef BLE_TEST
-  setLEDs(HIGH);
-
-  uint16_t arm_melody[] = { 1760, 1976, 2093 };
-  unsigned int arm_vibes[] = { 70, 33, 0 };
-  runVibe(arm_vibes, 3);
-  playMelody(arm_melody, 3);
-  display.displayArm();
+  //display.displayArm();
   #endif
 
 #endif // !defined(EPPG_BLE_HANDHELD)

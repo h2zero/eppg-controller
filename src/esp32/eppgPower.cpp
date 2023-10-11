@@ -7,6 +7,7 @@
 #include "eppgUtils.h"
 
 extern bool armed;
+extern bool hub_armed;
 
 static CircularBuffer<float, 50> voltageBuffer;
 static unsigned long prevPwrMillis = 0;

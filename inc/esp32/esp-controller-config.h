@@ -9,6 +9,7 @@
 #define BUZZER_PIN    4   // output for buzzer speaker
 #define LED_SW        18  // output for LED
 #define THROTTLE_PIN  3  // throttle pot input
+#define ARM_SW       5  // mostly for testing
 
 // SP140
 // #define TFT_RST 10

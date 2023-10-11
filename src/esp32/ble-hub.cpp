@@ -17,26 +17,43 @@ latency_test_t ble_lat_test;
 extern EppgBLEServer ble;
 //extern EppgEsc esc;
 extern STR_BMS_DATA bmsData;
+extern bool armed;
+
 Servo escpwm;
 
 void bleConnected(){Serial.println("Client Connected");}
-void bleDisconnected() {Serial.println("Client Disconnected");}
+void bleDisconnected() {
+  armed = false;
+  Serial.println("Client Disconnected");
+  escpwm.writeMicroseconds(0);
+  Serial.println("Dsrmed 2");
+}
+
 void bleThrottleUpdate(int val) {
-  Serial.printf("Updated Throttle: %d\n", val);
-  escpwm.writeMicroseconds(val);
+  if (armed) {
+    Serial.printf("A Updated Throttle: %d\n", val);
+    escpwm.writeMicroseconds(val);
+  } else {
+    escpwm.writeMicroseconds(ESC_DISARMED_PWM);
+    Serial.printf("NA Updated Throttle: %d\n", val);
+  }
 }
 
 void bleArm() {
-#ifdef BLE_TEST
   Serial.println("Armed from BLE");
+  armed = true;
+
+#ifdef BLE_TEST
 #else
   escpwm.writeMicroseconds(ESC_DISARMED_PWM);
 #endif
 }
 
 void bleDisarm() {
-#ifdef BLE_TEST
   Serial.println("Disarmed from BLE");
+  armed = false;
+
+#ifdef BLE_TEST
 #else
   escpwm.writeMicroseconds(ESC_DISARMED_PWM);
 #endif
@@ -45,7 +62,7 @@ void bleDisarm() {
 void setupBleServer() {
   SerialESC.begin(ESC_BAUD_RATE);
   SerialESC.setTimeout(ESC_TIMEOUT);
-  
+
   escpwm.attach(ESC_PIN);
   escpwm.writeMicroseconds(ESC_DISARMED_PWM);
 
@@ -73,7 +90,7 @@ void bleServerLoop() {
   double pressure = random(300, 0xFFFF);
   pressure += (random(1, 99) / 100.0F);
   ble.setBmp(pressure);
-  
+
   // bmsData.packVoltage = 12.3;
   // bmsData.packCurrent = 4.5;
   // bmsData.packSOC = 0.75;

@@ -28,6 +28,7 @@
 #define DIGIT_ARRAY_SIZE      7
 
 extern bool armed;
+extern bool hub_armed;
 extern STR_DEVICE_DATA_140_V1 deviceData;
 extern STR_BMS_DATA bmsData;
 extern EppgThrottle throttle;
@@ -264,8 +265,8 @@ uint16_t EppgDisplay::batt2color(int percentage) {
 void EppgDisplay::update() {
   if( xSemaphoreTake( xSemaphore4tft, ( TickType_t ) 100 ) == pdTRUE ) {
     // update the clock every second
-    displayClock(); 
-    displayDiagnostics(); 
+    displayClock();
+    displayDiagnostics();
     xSemaphoreGive( xSemaphore4tft );
   }
 }
@@ -298,7 +299,7 @@ void EppgDisplay::displayClock() {
         if (hh > 23) { // Check for 24hr roll-over (could roll-over on 13)
           hh = 0;      // 0 for 24 hour clock, set to 1 for 12 hour clock
         }
-    
+
       }
     }
 
